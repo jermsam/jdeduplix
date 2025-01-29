@@ -7,8 +7,9 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 ### Full Stack Overview
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
 graph TD
-    classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:white
+    classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
     classDef backend fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
     
@@ -37,18 +38,19 @@ graph TD
     IDX --> UI
     UI --> VIS & EXP
 
-    style Frontend fill:#e8f5e9,stroke:#81c784,stroke-width:2px
-    style Backend fill:#e3f2fd,stroke:#64b5f6,stroke-width:2px
-    style Storage fill:#ffebee,stroke:#ef9a9a,stroke-width:2px
+    style Frontend fill:#1a1c1d,stroke:#42b883,stroke-width:2px
+    style Backend fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
+    style Storage fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
 ```
 
 ### Frontend Architecture
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
 flowchart TD
-    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:white
-    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:white
-    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:white
+    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
+    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
+    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
 
     subgraph UI[User Interface]
         direction TB
@@ -74,15 +76,16 @@ flowchart TD
         H --> J
     end
 
-    style UI fill:#f8f9fa,stroke:#42b883,stroke-width:2px
+    style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
 ```
 
 ### Backend Architecture
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
 flowchart TD
     classDef engine fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
-    classDef ai fill:#6b9fff,stroke:#2d5a9e,stroke-width:2px,color:white
+    classDef ai fill:#6b9fff,stroke:#2d5a9e,stroke-width:2px,color:#1a1c1d
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
 
     subgraph Core[Deduplication Core]
@@ -116,7 +119,7 @@ flowchart TD
         I --> J1 & J2 & J3
     end
 
-    style Core fill:#f8f9fa,stroke:#2b7489,stroke-width:2px
+    style Core fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
 ```
 
 ## 🌟 Key Features
