@@ -172,100 +172,83 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
 flowchart TD
-    classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
-    classDef backend fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
-    classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
+    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
+    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
+    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
-    classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
+    classDef storage fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
+    classDef dist fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:#1a1c1d
+    classDef backend fill:#0984e3,stroke:#74b9ff,stroke-width:2px,color:#1a1c1d
     classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
-    classDef adapter fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:white
+    classDef version fill:#fd79a8,stroke:#e84393,stroke-width:2px,color:#1a1c1d
 
-    subgraph FE[Frontend Layer]
+    subgraph UI[User Interface Layer]
         direction TB
-        UI[Tauri + Vue UI]:::frontend
-        VIS[Visualizations]:::frontend
-        EXP[Export Tools]:::frontend
-        APIC[API Console]:::frontend
-        P2PC[P2P Controls]:::frontend
+        FE[Frontend App]:::primary
+        SDK[Client SDK]:::secondary
+        API[API Gateway]:::api
     end
 
     subgraph BE[Backend Layer]
         direction TB
-        DE[Deduplication Engine]:::backend
         AI[AI Processing]:::backend
         IDX[Smart Indexing]:::backend
         DIST[Distributed Coordinator]:::dist
-        VC[Loro CRDT Version Control]:::backend
     end
 
     subgraph ST[Storage Layer]
         direction TB
-        DB[(Databases)]:::storage
-        FS[(File System)]:::storage
-        VDB[(Vector DBs)]:::storage
-        GIT[(Version Control)]:::storage
+        DB[(Local DB)]:::storage
+        FS[File System]:::storage
+        VDB[(Vector DB)]:::storage
     end
 
-    subgraph AG[API Gateway]
+    subgraph P2P[P2P Network]
         direction TB
-        REST[REST API]:::api
-        WS[WebSocket API]:::api
-        SDK[Client SDKs]:::api
+        LIBP2P[LibP2P Stack]:::p2p
+        HOLE[Holepunch Stack]:::p2p
+        DHT[DHT]:::p2p
+        IPFS[IPFS]:::p2p
     end
 
-    subgraph P2P[P2P Network Layer]
+    subgraph VCS[Version Control Service]
         direction TB
+        CRDT[Loro CRDT]:::version
+        BRANCH[Branch Manager]:::version
+        MERGE[Merge Handler]:::version
+        DAG[History DAG]:::version
+        BLOCK[Block Storage]:::version
         
-        subgraph P2PA[P2P Adapter Interface]
-            direction TB
-            PCORE[P2P Core]:::p2p
-            PADAPT[Protocol Adapter]:::adapter
-        end
-
-        subgraph PROT[Protocol Implementations]
-            direction TB
-            LP2P[LibP2P Stack]:::p2p
-            HOLE[Holepunch Stack]:::p2p
-        end
-
-        subgraph SERV[P2P Services]
-            direction TB
-            DHT[DHT Routing]:::p2p
-            IPFS[IPFS Storage]:::p2p
-            HYPER[Hypercore]:::p2p
-            DISCO[Peer Discovery]:::p2p
-        end
+        CRDT --> BRANCH
+        CRDT --> MERGE
+        BRANCH --> DAG
+        MERGE --> DAG
+        DAG --> BLOCK
     end
 
-    UI --> DE
-    DE --> AI
-    AI --> IDX
-    IDX --> DB & FS & VDB & GIT
-    IDX --> UI
-    UI --> VIS & EXP & APIC & P2PC
+    FE --> SDK
+    SDK --> API
+    API --> AI
+    API --> IDX
+    API --> DIST
+    API --> VCS
     
-    DE <--> DIST
+    AI --> DB
+    AI --> VDB
+    IDX --> VDB
+    IDX --> FS
+    DIST --> P2P
+    VCS --> P2P
     
-    APIC & UI --> REST & WS
-    REST & WS --> SDK
+    LIBP2P --> DHT
+    LIBP2P --> IPFS
+    HOLE --> DHT
 
-    %% P2P Connections
-    P2PC --> PCORE
-    PCORE --> PADAPT
-    PADAPT --> LP2P & HOLE
-    LP2P --> DHT & IPFS
-    HOLE --> HYPER & DISCO
-    DE <--> PCORE
-    IDX --> IPFS & HYPER
-
-    style FE fill:#1a1c1d,stroke:#42b883,stroke-width:2px
-    style BE fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
-    style ST fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
-    style AG fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
+    style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
+    style BE fill:#1a1c1d,stroke:#0984e3,stroke-width:2px
+    style ST fill:#1a1c1d,stroke:#00b894,stroke-width:2px
     style P2P fill:#1a1c1d,stroke:#00b894,stroke-width:2px
-    style P2PA fill:#1a1c1d,stroke:#6c5ce7,stroke-width:2px
-    style PROT fill:#1a1c1d,stroke:#00b894,stroke-width:2px
-    style SERV fill:#1a1c1d,stroke:#00b894,stroke-width:2px
+    style VCS fill:#1a1c1d,stroke:#fd79a8,stroke-width:2px
 ```
 
 ### Frontend Architecture
@@ -278,6 +261,7 @@ flowchart TD
     classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
     classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
+    classDef version fill:#fd79a8,stroke:#e84393,stroke-width:2px,color:#1a1c1d
 
     subgraph UI[User Interface]
         direction TB
@@ -292,7 +276,6 @@ flowchart TD
         I[Download]:::action
         J[Share]:::action
         K[API Documentation]:::api
-        L[Version History]:::secondary
         M[Integration Hub]:::api
         
         subgraph P2P[P2P Controls]
@@ -302,31 +285,46 @@ flowchart TD
             P[Network Stats]:::p2p
             Q[Storage Config]:::p2p
         end
-        
-        A --> B
-        A --> C
-        A --> K
-        A --> M
-        A --> P2P
-        B --> D
-        C --> E
-        C --> F
-        C --> G
-        C --> L
-        E & F & G --> H
-        H --> I
-        H --> J
-        
-        N --> O
-        O --> P
-        N --> Q
-        
-        M --> |External Systems| K
-        O --> |Network Status| P
     end
+
+    subgraph VCS[Version Controls]
+        direction TB
+        V[Branch Manager]:::version
+        W[Merge UI]:::version
+        X[History Browser]:::version
+        Y[Diff Viewer]:::version
+        L[Version History]:::version
+        
+        V --> W
+        V --> X
+        X --> Y
+        X --> L
+    end
+    
+    A --> B
+    A --> C
+    A --> K
+    A --> M
+    A --> P2P
+    A -.-> VCS
+    B --> D
+    C --> E
+    C --> F
+    C --> G
+    E & F & G --> H
+    H --> I
+    H --> J
+    
+    N --> O
+    O --> P
+    N --> Q
+    
+    M --> |External Systems| K
+    O --> |Network Status| P
 
     style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
     style P2P fill:#1a1c1d,stroke:#00b894,stroke-width:2px
+    style VCS fill:#1a1c1d,stroke:#fd79a8,stroke-width:2px
 ```
 
 ### Backend Architecture
@@ -365,10 +363,7 @@ flowchart TD
         %% Core Components
         K[Model Registry]:::ai
         L[Feedback Loop]:::ai
-        M[Version Control]:::version
-        N[Distributed Coordinator]:::dist
-        O[Worker Nodes]:::dist
-        P[API Gateway]:::engine
+        M[API Gateway]:::engine
         
         %% P2P Components
         Q[P2P Manager]:::p2p
@@ -397,9 +392,6 @@ flowchart TD
         L --> K
         K --> C
         B --> M
-        N --> O
-        O --> B
-        B --> P
         
         %% P2P Connections
         B <--> Q
@@ -415,11 +407,27 @@ flowchart TD
         %% Feedback Loops
         L --> |Model Updates| D1 & D2 & D3 & D4
         F --> |Threshold Updates| L
-        M --> |Version History| I
+        M --> |API Requests| B
         V --> |P2P Updates| L
     end
 
+    subgraph VCS[Version Control Service]
+        direction TB
+        CRDT[Loro CRDT]:::version
+        BRANCH[Branch Manager]:::version
+        MERGE[Merge Handler]:::version
+        DAG[History DAG]:::version
+        BLOCK[Block Storage]:::version
+        
+        CRDT --> BRANCH
+        CRDT --> MERGE
+        BRANCH --> DAG
+        MERGE --> DAG
+        DAG --> BLOCK
+    end
+
     style Core fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
+    style VCS fill:#1a1c1d,stroke:#20bf6b,stroke-width:2px
 ```
 
 ## 🌟 Key Features
