@@ -45,60 +45,78 @@ graph TD
 ### Frontend Architecture
 
 ```mermaid
-graph TD
+flowchart TD
     classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:white
     classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:white
     classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:white
 
-    subgraph "User Interface"
-        A[User Dashboard]:::primary --> B[Upload Interface]:::primary
-        A --> C[Results View]:::primary
+    subgraph UI[User Interface]
+        direction TB
+        A[User Dashboard]:::primary
+        B[Upload Interface]:::primary
+        C[Results View]:::primary
+        D[Smart Classifier UI]:::secondary
+        E[Manual Resolution]:::secondary
+        F[AI Confidence Display]:::secondary
+        G[Similarity Heatmap]:::secondary
+        H[Export Options]:::action
+        I[Download]:::action
+        J[Share]:::action
         
-        B --> D[Smart Classifier UI]:::secondary
-        C --> E[Manual Resolution]:::secondary
-        C --> F[AI Confidence Display]:::secondary
-        C --> G[Similarity Heatmap]:::secondary
-        
-        E & F & G --> H[Export Options]:::action
-        H --> I[Download]:::action
-        H --> J[Share]:::action
+        A --> B
+        A --> C
+        B --> D
+        C --> E
+        C --> F
+        C --> G
+        E & F & G --> H
+        H --> I
+        H --> J
     end
 
-    style "User Interface" fill:#f8f9fa,stroke:#42b883,stroke-width:2px
+    style UI fill:#f8f9fa,stroke:#42b883,stroke-width:2px
 ```
 
 ### Backend Architecture
 
 ```mermaid
-graph TD
+flowchart TD
     classDef engine fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
     classDef ai fill:#6b9fff,stroke:#2d5a9e,stroke-width:2px,color:white
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
 
-    subgraph "Deduplication Core"
-        A[Smart Classifier]:::engine --> B[Deduplication Engine]:::engine
+    subgraph Core[Deduplication Core]
+        direction TB
+        A[Smart Classifier]:::engine
+        B[Deduplication Engine]:::engine
+        C[AI Processing Pipeline]:::ai
+        D1[ML Text Deduper]:::ai
+        D2[GNN JSON Deduper]:::ai
+        D3[CNN Image Deduper]:::ai
+        D4[Binary Deduper]:::ai
+        E[ML Conflict Resolver]:::ai
+        F[Auto-Tuning]:::ai
+        G[Vector Indexing]:::engine
+        H1[FAISS HNSW]:::engine
+        H2[Perceptual Hash]:::engine
+        H3[Graph Matching]:::engine
+        I[Storage Layer]:::storage
+        J1[Sled DB]:::storage
+        J2[File System]:::storage
+        J3[Vector DB]:::storage
         
-        B --> C[AI Processing Pipeline]:::ai
-        C --> D1[ML Text Deduper]:::ai
-        C --> D2[GNN JSON Deduper]:::ai
-        C --> D3[CNN Image Deduper]:::ai
-        C --> D4[Binary Deduper]:::ai
-        
-        D1 & D2 & D3 & D4 --> E[ML Conflict Resolver]:::ai
-        E --> F[Auto-Tuning]:::ai
-        
-        B --> G[Vector Indexing]:::engine
-        G --> H1[FAISS HNSW]:::engine
-        G --> H2[Perceptual Hash]:::engine
-        G --> H3[Graph Matching]:::engine
-        
-        H1 & H2 & H3 --> I[Storage Layer]:::storage
-        I --> J1[Sled DB]:::storage
-        I --> J2[File System]:::storage
-        I --> J3[Vector DB]:::storage
+        A --> B
+        B --> C
+        C --> D1 & D2 & D3 & D4
+        D1 & D2 & D3 & D4 --> E
+        E --> F
+        B --> G
+        G --> H1 & H2 & H3
+        H1 & H2 & H3 --> I
+        I --> J1 & J2 & J3
     end
 
-    style "Deduplication Core" fill:#f8f9fa,stroke:#2b7489,stroke-width:2px
+    style Core fill:#f8f9fa,stroke:#2b7489,stroke-width:2px
 ```
 
 ## 🌟 Key Features
