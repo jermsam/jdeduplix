@@ -15,6 +15,7 @@ flowchart TD
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
     classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
     classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
+    classDef adapter fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:white
 
     subgraph FE[Frontend Layer]
         direction TB
@@ -48,12 +49,28 @@ flowchart TD
         SDK[Client SDKs]:::api
     end
 
-    subgraph P2P[P2P Network]
+    subgraph P2P[P2P Network Layer]
         direction TB
-        DHT[DHT Network]:::p2p
-        IPFS[IPFS Storage]:::p2p
-        LIBP2P[LibP2P Protocol]:::p2p
-        DISCO[Peer Discovery]:::p2p
+        
+        subgraph P2PA[P2P Adapter Interface]
+            direction TB
+            PCORE[P2P Core]:::p2p
+            PADAPT[Protocol Adapter]:::adapter
+        end
+
+        subgraph PROT[Protocol Implementations]
+            direction TB
+            LP2P[LibP2P Stack]:::p2p
+            HOLE[Holepunch Stack]:::p2p
+        end
+
+        subgraph SERV[P2P Services]
+            direction TB
+            DHT[DHT Routing]:::p2p
+            IPFS[IPFS Storage]:::p2p
+            HYPER[Hypercore]:::p2p
+            DISCO[Peer Discovery]:::p2p
+        end
     end
 
     UI --> DE
@@ -69,66 +86,22 @@ flowchart TD
     REST & WS --> SDK
 
     %% P2P Connections
-    P2PC <--> LIBP2P
-    LIBP2P <--> DHT
-    DHT <--> DISCO
-    IPFS <--> DHT
-    DE <--> LIBP2P
-    IDX --> IPFS
+    P2PC --> PCORE
+    PCORE --> PADAPT
+    PADAPT --> LP2P & HOLE
+    LP2P --> DHT & IPFS
+    HOLE --> HYPER & DISCO
+    DE <--> PCORE
+    IDX --> IPFS & HYPER
 
     style FE fill:#1a1c1d,stroke:#42b883,stroke-width:2px
     style BE fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
     style ST fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
     style AG fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
     style P2P fill:#1a1c1d,stroke:#00b894,stroke-width:2px
-```
-
-### Frontend Architecture
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
-flowchart TD
-    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
-    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
-    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
-    classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
-    classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
-
-    subgraph UI[User Interface]
-        direction TB
-        A[User Dashboard]:::primary
-        B[Upload Interface]:::primary
-        C[Results View]:::primary
-        D[Smart Classifier UI]:::secondary
-        E[Manual Resolution]:::secondary
-        F[AI Confidence Display]:::secondary
-        G[Similarity Heatmap]:::secondary
-        H[Export Options]:::action
-        I[Download]:::action
-        J[Share]:::action
-        K[API Documentation]:::api
-        L[Version History]:::secondary
-        M[Integration Hub]:::api
-        N[P2P Controls]:::p2p
-        
-        A --> B
-        A --> C
-        A --> K
-        A --> M
-        B --> D
-        C --> E
-        C --> F
-        C --> G
-        C --> L
-        E & F & G --> H
-        H --> I
-        H --> J
-        
-        M --> |External Systems| K
-        N --> |P2P Network| K
-    end
-
-    style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
+    style P2PA fill:#1a1c1d,stroke:#6c5ce7,stroke-width:2px
+    style PROT fill:#1a1c1d,stroke:#00b894,stroke-width:2px
+    style SERV fill:#1a1c1d,stroke:#00b894,stroke-width:2px
 ```
 
 ### Backend Architecture
@@ -142,6 +115,7 @@ flowchart TD
     classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
     classDef version fill:#20bf6b,stroke:#26de81,stroke-width:2px,color:#1a1c1d
     classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
+    classDef adapter fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:white
 
     subgraph Core[Deduplication Core]
         direction TB
@@ -163,7 +137,7 @@ flowchart TD
         J2[File System]:::storage
         J3[Vector DB]:::storage
         
-        %% New Components
+        %% Core Components
         K[Model Registry]:::ai
         L[Feedback Loop]:::ai
         M[Version Control]:::version
@@ -172,12 +146,16 @@ flowchart TD
         P[API Gateway]:::engine
         
         %% P2P Components
-        Q[P2P Network Manager]:::p2p
-        R[DHT Client]:::p2p
-        S[IPFS Node]:::p2p
+        Q[P2P Manager]:::p2p
+        R[Protocol Adapter]:::adapter
+        S1[LibP2P Implementation]:::p2p
+        S2[Holepunch Implementation]:::p2p
         T[Peer Discovery]:::p2p
-        U[Content Routing]:::p2p
+        U[Content Router]:::p2p
         V[Replication Manager]:::p2p
+        W[Storage Adapter]:::adapter
+        X1[IPFS Storage]:::p2p
+        X2[Hypercore Storage]:::p2p
         
         A --> B
         B --> C
@@ -189,7 +167,7 @@ flowchart TD
         H1 & H2 & H3 --> I
         I --> J1 & J2 & J3
         
-        %% New Connections
+        %% Core Connections
         E --> L
         L --> K
         K --> C
@@ -200,12 +178,14 @@ flowchart TD
         
         %% P2P Connections
         B <--> Q
-        Q --> R & S & T
-        R --> U
-        S --> V
+        Q --> R
+        R --> S1 & S2
+        S1 & S2 --> T
         T --> U
         U --> V
-        V --> I
+        V --> W
+        W --> X1 & X2
+        X1 & X2 --> I
         
         %% Feedback Loops
         L --> |Model Updates| D1 & D2 & D3 & D4
@@ -234,7 +214,7 @@ flowchart TD
 - AI confidence score displays and similarity heatmaps
 - Interactive conflict resolution interface
 - Export and download capabilities
-- P2P controls for decentralized data sharing
+- P2P network controls and protocol selection
 
 ### Backend (Rust + AI)
 - **Deduplication Engine**:
@@ -253,16 +233,20 @@ flowchart TD
   - Automated threshold tuning
   - Human-in-the-loop review system
 
-- **P2P Network Manager**:
-  - IPFS Node management
-  - LibP2P protocol implementation
-  - Peer discovery and content routing
+- **P2P Network Layer**:
+  - Pluggable protocol architecture
+  - LibP2P implementation with IPFS storage
+  - Holepunch implementation with Hypercore storage
+  - Protocol-agnostic adapter interface
+  - Unified peer discovery and routing
+  - Cross-protocol replication support
 
 ### Storage Options
 - Sled DB for high-performance local storage
 - File system integration for simple deployments
-- Vector DB support (Weaviate/Pinecone) for advanced similarity search
-- IPFS for decentralized data storage
+- Vector DB support (Weaviate/Pinecone)
+- IPFS for LibP2P-based storage
+- Hypercore for Holepunch-based storage
 
 ## 🚀 Getting Started
 
