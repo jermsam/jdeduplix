@@ -104,6 +104,67 @@ flowchart TD
     style SERV fill:#1a1c1d,stroke:#00b894,stroke-width:2px
 ```
 
+### Frontend Architecture
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
+flowchart TD
+    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
+    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
+    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
+    classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
+    classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
+
+    subgraph UI[User Interface]
+        direction TB
+        A[User Dashboard]:::primary
+        B[Upload Interface]:::primary
+        C[Results View]:::primary
+        D[Smart Classifier UI]:::secondary
+        E[Manual Resolution]:::secondary
+        F[AI Confidence Display]:::secondary
+        G[Similarity Heatmap]:::secondary
+        H[Export Options]:::action
+        I[Download]:::action
+        J[Share]:::action
+        K[API Documentation]:::api
+        L[Version History]:::secondary
+        M[Integration Hub]:::api
+        
+        subgraph P2P[P2P Controls]
+            direction TB
+            N[Protocol Selector]:::p2p
+            O[Peer Manager]:::p2p
+            P[Network Stats]:::p2p
+            Q[Storage Config]:::p2p
+        end
+        
+        A --> B
+        A --> C
+        A --> K
+        A --> M
+        A --> P2P
+        B --> D
+        C --> E
+        C --> F
+        C --> G
+        C --> L
+        E & F & G --> H
+        H --> I
+        H --> J
+        
+        N --> O
+        O --> P
+        N --> Q
+        
+        M --> |External Systems| K
+        O --> |Network Status| P
+    end
+
+    style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
+    style P2P fill:#1a1c1d,stroke:#00b894,stroke-width:2px
+```
+
 ### Backend Architecture
 
 ```mermaid
