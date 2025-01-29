@@ -18,18 +18,20 @@ const isDark = ref(true) // Default to dark theme
 const theme = ref(isDark.value ? 'dark' : 'light')
 
 // Initialize deduplication
-const { strategy, duplicates, loadSavedStrategy, findDuplicates, clearDuplicates } = useDeduplication()
+const { strategy, duplicates, findDuplicates, clearDuplicates, loadSavedStrategy } = useDeduplication()
+
+// Load initial strategy
+onMounted(async () => {
+  // Initialize theme
+  document.documentElement.classList.toggle('dark', isDark.value)
+  
+  // Load strategy from backend
+  await loadSavedStrategy()
+})
 
 watch(isDark, (newValue) => {
   theme.value = newValue ? 'dark' : 'light'
   document.documentElement.classList.toggle('dark', newValue)
-})
-
-onMounted(() => {
-  // Initialize theme
-  document.documentElement.classList.toggle('dark', isDark.value)
-  // Load saved strategy
-  loadSavedStrategy()
 })
 
 // Editor setup
@@ -79,6 +81,7 @@ Another unique sentence here.`
 <template>
   <div class="min-h-screen bg-[#0F1115] text-gray-100">
     <main class="p-6">
+    
       <Container maxWidth="2xl">
         <div class="space-y-6">
           <!-- Action Buttons -->
@@ -100,7 +103,7 @@ Another unique sentence here.`
             <div class="rounded-lg overflow-hidden bg-[#1A1D23]">
               <EditorContent :editor="editor" class="p-4" />
             </div>
-
+            
             <!-- Settings -->
             <DedupSettings
               v-model:strategy="strategy"

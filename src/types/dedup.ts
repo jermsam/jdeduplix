@@ -1,15 +1,15 @@
 export enum SplitStrategy {
-  Characters = 'CHARACTERS',
-  Words = 'WORDS',
-  Sentences = 'SENTENCES',
-  Paragraphs = 'PARAGRAPHS',
-  WholeText = 'WHOLETEXT'
+  Characters = 'Characters',
+  Words = 'Words',
+  Sentences = 'Sentences',
+  Paragraphs = 'Paragraphs',
+  WholeText = 'WholeText'
 }
 
 export enum ComparisonScope {
-  WithinUnit = 'WITHINUNIT',
-  AcrossUnits = 'ACROSSUNITS',
-  Both = 'BOTH'
+  WithinUnit = 'WithinUnit',
+  AcrossUnits = 'AcrossUnits',
+  Both = 'Both'
 }
 
 export interface DedupStrategy {

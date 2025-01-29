@@ -28,17 +28,21 @@ const sizeClasses = {
   base: 'px-4 py-2 text-sm',
   lg: 'px-6 py-3 text-base'
 }
+
+const classes = computed(() => {
+  return [
+    baseClasses,
+    variantClasses[props.variant],
+    sizeClasses[props.size]
+  ].join(' ')
+})
 </script>
 
 <template>
   <button
-    :type="type"
-    :disabled="disabled"
-    :class="[
-      baseClasses,
-      variantClasses[variant],
-      sizeClasses[size]
-    ]"
+    :type="props.type"
+    :disabled="props.disabled"
+    :class="classes"
   >
     <slot />
   </button>

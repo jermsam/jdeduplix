@@ -3,7 +3,6 @@
 import { defineEmits, defineProps } from 'vue'
 import { type DedupStrategy, SplitStrategy, ComparisonScope } from '../../types/dedup'
 import Text from '../atoms/Text.vue'
-import Input from '../atoms/Input.vue'
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/vue/20/solid'
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
 
@@ -114,22 +113,22 @@ const comparisonScopes = [
       <div class="flex justify-between items-center">
         <Text size="sm" weight="medium" class="text-gray-300">Similarity Threshold</Text>
         <Text size="sm" class="text-gray-400">
-          {{ Math.round(props.strategy.similarity_threshold * 100) }}%
+          {{ Math.round((props.strategy.similarity_threshold || 0) * 100) }}%
         </Text>
       </div>
       <div class="relative w-full h-1.5">
         <div class="absolute inset-0 rounded-full bg-[#1A1D23]"></div>
         <div 
           class="absolute inset-y-0 left-0 bg-indigo-600 rounded-full transition-all duration-150"
-          :style="{ width: `${props.strategy.similarity_threshold * 100}%` }"
+          :style="{ width: `${(props.strategy.similarity_threshold || 0) * 100}%` }"
         ></div>
         <div 
           class="absolute top-1/2 -translate-y-1/2 -ml-2.5 w-5 h-5 rounded-full bg-white border-2 border-indigo-600 transition-all duration-150 pointer-events-none"
-          :style="{ left: `${props.strategy.similarity_threshold * 100}%` }"
+          :style="{ left: `${(props.strategy.similarity_threshold || 0) * 100}%` }"
         ></div>
         <input
           type="range"
-          :value="props.strategy.similarity_threshold * 100"
+          :value="(props.strategy.similarity_threshold || 0) * 100"
           @input="e => handleChange('similarity_threshold', Number((e.target as HTMLInputElement).value) / 100)"
           min="0"
           max="100"
