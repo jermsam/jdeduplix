@@ -14,6 +14,7 @@ flowchart TD
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
     classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
+    classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
 
     subgraph FE[Frontend Layer]
         direction TB
@@ -21,6 +22,7 @@ flowchart TD
         VIS[Visualizations]:::frontend
         EXP[Export Tools]:::frontend
         APIC[API Console]:::frontend
+        P2PC[P2P Controls]:::frontend
     end
 
     subgraph BE[Backend Layer]
@@ -46,22 +48,39 @@ flowchart TD
         SDK[Client SDKs]:::api
     end
 
+    subgraph P2P[P2P Network]
+        direction TB
+        DHT[DHT Network]:::p2p
+        IPFS[IPFS Storage]:::p2p
+        LIBP2P[LibP2P Protocol]:::p2p
+        DISCO[Peer Discovery]:::p2p
+    end
+
     UI --> DE
     DE --> AI
     AI --> IDX
     IDX --> DB & FS & VDB & GIT
     IDX --> UI
-    UI --> VIS & EXP & APIC
+    UI --> VIS & EXP & APIC & P2PC
     
     DE <--> DIST
     
     APIC & UI --> REST & WS
     REST & WS --> SDK
 
+    %% P2P Connections
+    P2PC <--> LIBP2P
+    LIBP2P <--> DHT
+    DHT <--> DISCO
+    IPFS <--> DHT
+    DE <--> LIBP2P
+    IDX --> IPFS
+
     style FE fill:#1a1c1d,stroke:#42b883,stroke-width:2px
     style BE fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
     style ST fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
     style AG fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
+    style P2P fill:#1a1c1d,stroke:#00b894,stroke-width:2px
 ```
 
 ### Frontend Architecture
@@ -73,6 +92,7 @@ flowchart TD
     classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
     classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
+    classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
 
     subgraph UI[User Interface]
         direction TB
@@ -89,6 +109,7 @@ flowchart TD
         K[API Documentation]:::api
         L[Version History]:::secondary
         M[Integration Hub]:::api
+        N[P2P Controls]:::p2p
         
         A --> B
         A --> C
@@ -104,6 +125,7 @@ flowchart TD
         H --> J
         
         M --> |External Systems| K
+        N --> |P2P Network| K
     end
 
     style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
@@ -119,6 +141,7 @@ flowchart TD
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
     classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
     classDef version fill:#20bf6b,stroke:#26de81,stroke-width:2px,color:#1a1c1d
+    classDef p2p fill:#00b894,stroke:#00cec9,stroke-width:2px,color:#1a1c1d
 
     subgraph Core[Deduplication Core]
         direction TB
@@ -148,6 +171,14 @@ flowchart TD
         O[Worker Nodes]:::dist
         P[API Gateway]:::engine
         
+        %% P2P Components
+        Q[P2P Network Manager]:::p2p
+        R[DHT Client]:::p2p
+        S[IPFS Node]:::p2p
+        T[Peer Discovery]:::p2p
+        U[Content Routing]:::p2p
+        V[Replication Manager]:::p2p
+        
         A --> B
         B --> C
         C --> D1 & D2 & D3 & D4
@@ -167,10 +198,20 @@ flowchart TD
         O --> B
         B --> P
         
+        %% P2P Connections
+        B <--> Q
+        Q --> R & S & T
+        R --> U
+        S --> V
+        T --> U
+        U --> V
+        V --> I
+        
         %% Feedback Loops
         L --> |Model Updates| D1 & D2 & D3 & D4
         F --> |Threshold Updates| L
         M --> |Version History| I
+        V --> |P2P Updates| L
     end
 
     style Core fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
@@ -184,6 +225,7 @@ flowchart TD
 - **Intelligent Conflict Resolution**: Machine learning-assisted conflict handling with human oversight
 - **High-Performance Search**: Vector-based similarity search using FAISS HNSW
 - **Flexible Storage**: Pluggable storage backends supporting Sled DB, file system, and vector databases
+- **P2P Capabilities**: Decentralized data sharing and deduplication using IPFS and LibP2P
 
 ## 🏗️ Architecture
 
@@ -192,6 +234,7 @@ flowchart TD
 - AI confidence score displays and similarity heatmaps
 - Interactive conflict resolution interface
 - Export and download capabilities
+- P2P controls for decentralized data sharing
 
 ### Backend (Rust + AI)
 - **Deduplication Engine**:
@@ -210,10 +253,16 @@ flowchart TD
   - Automated threshold tuning
   - Human-in-the-loop review system
 
+- **P2P Network Manager**:
+  - IPFS Node management
+  - LibP2P protocol implementation
+  - Peer discovery and content routing
+
 ### Storage Options
 - Sled DB for high-performance local storage
 - File system integration for simple deployments
 - Vector DB support (Weaviate/Pinecone) for advanced similarity search
+- IPFS for decentralized data storage
 
 ## 🚀 Getting Started
 
