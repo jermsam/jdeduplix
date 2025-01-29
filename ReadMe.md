@@ -4,47 +4,101 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 
 ## 📊 System Architecture
 
+### Full Stack Overview
+
 ```mermaid
-graph TD;
-
-    %% USER INTERACTION
-    subgraph "User Interaction"
-        A[User Uploads Data] -->|AI-Powered Detection| B[Smart Classifier]
+graph TD
+    classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:white
+    classDef backend fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
+    classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
+    
+    subgraph "Frontend Layer"
+        UI[Tauri + Vue UI]:::frontend
+        VIS[Visualizations]:::frontend
+        EXP[Export Tools]:::frontend
     end
 
-    %% BACKEND
-    subgraph "Backend (Rust + AI)"
-        B -->|Splits & Routes Data| C[Deduplication Engine]
+    subgraph "Backend Layer"
+        DE[Deduplication Engine]:::backend
+        AI[AI Processing]:::backend
+        IDX[Smart Indexing]:::backend
+    end
+
+    subgraph "Storage Layer"
+        DB[(Databases)]:::storage
+        FS[(File System)]:::storage
+        VDB[(Vector DBs)]:::storage
+    end
+
+    UI --> DE
+    DE --> AI
+    AI --> IDX
+    IDX --> DB & FS & VDB
+    IDX --> UI
+    UI --> VIS & EXP
+
+    style Frontend fill:#e8f5e9,stroke:#81c784,stroke-width:2px
+    style Backend fill:#e3f2fd,stroke:#64b5f6,stroke-width:2px
+    style Storage fill:#ffebee,stroke:#ef9a9a,stroke-width:2px
+```
+
+### Frontend Architecture
+
+```mermaid
+graph TD
+    classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:white
+    classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:white
+    classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:white
+
+    subgraph "User Interface"
+        A[User Dashboard]:::primary --> B[Upload Interface]:::primary
+        A --> C[Results View]:::primary
         
-        %% Deduplication Strategies
-        C -->|Processes Data| D[AI-Enhanced Deduplication Strategies]
-        D -->|Exact & AI-Fuzzy Matching| D1[ML Text Deduper] & D2[GNN JSON Deduper] & D3[CNN Image Deduper] & D4[Deep Learning Binary Deduper] 
+        B --> D[Smart Classifier UI]:::secondary
+        C --> E[Manual Resolution]:::secondary
+        C --> F[AI Confidence Display]:::secondary
+        C --> G[Similarity Heatmap]:::secondary
         
-        %% ML-Assisted Conflict Resolution
-        D -->|Sends Predictions| R[ML Conflict Resolver]
-        R -->|Human-in-the-Loop Review| S[User Feedback]
-        R -->|Confidence-Weighted Decisions| T[Threshold Auto-Tuning]
-
-        %% AI Indexing & Storage Layer
-        C -->|Indexes & Stores| E[Smart Cache & Vector Indexing]
-        E -->|Retrieves Data| G1[FAISS HNSW Vector Search] & G2[Perceptual Hash] & G3[Graph Matching]
-
+        E & F & G --> H[Export Options]:::action
+        H --> I[Download]:::action
+        H --> J[Share]:::action
     end
 
-    %% STORAGE OPTIONS
-    subgraph "Storage (Optional)"
-        E -->|Pluggable Options| F1[Sled DB] & F2[File System] & F3[Vector DB - Weaviate or Pinecone]
+    style "User Interface" fill:#f8f9fa,stroke:#42b883,stroke-width:2px
+```
+
+### Backend Architecture
+
+```mermaid
+graph TD
+    classDef engine fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
+    classDef ai fill:#6b9fff,stroke:#2d5a9e,stroke-width:2px,color:white
+    classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
+
+    subgraph "Deduplication Core"
+        A[Smart Classifier]:::engine --> B[Deduplication Engine]:::engine
+        
+        B --> C[AI Processing Pipeline]:::ai
+        C --> D1[ML Text Deduper]:::ai
+        C --> D2[GNN JSON Deduper]:::ai
+        C --> D3[CNN Image Deduper]:::ai
+        C --> D4[Binary Deduper]:::ai
+        
+        D1 & D2 & D3 & D4 --> E[ML Conflict Resolver]:::ai
+        E --> F[Auto-Tuning]:::ai
+        
+        B --> G[Vector Indexing]:::engine
+        G --> H1[FAISS HNSW]:::engine
+        G --> H2[Perceptual Hash]:::engine
+        G --> H3[Graph Matching]:::engine
+        
+        H1 & H2 & H3 --> I[Storage Layer]:::storage
+        I --> J1[Sled DB]:::storage
+        I --> J2[File System]:::storage
+        I --> J3[Vector DB]:::storage
     end
 
-    %% UI
-    subgraph "UI (Tauri + Vue)"
-        G[User Views Results] -->|AI-Suggested Review| H[Manual Conflict Resolution]
-        G -->|Visualizes Similarity & Explanation| I[AI Confidence Score & Heatmap]
-        G -->|Exports Data| J[Download or Export]
-    end
-
-    %% FINAL OUTPUT
-    C -->|Sends AI-Enhanced Results| G
+    style "Deduplication Core" fill:#f8f9fa,stroke:#2b7489,stroke-width:2px
 ```
 
 ## 🌟 Key Features
