@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
-
-// Editor extensions
 import { Placeholder } from '@tiptap/extension-placeholder'
 
 // Component imports
@@ -13,12 +10,15 @@ import Text from './components/atoms/Text.vue'
 import DedupSettings from './components/molecules/DedupSettings.vue'
 import Button from './components/atoms/Button.vue'
 
-// Types
-import { DedupStrategy, DuplicateGroup, DEFAULT_STRATEGY, SplitStrategy, ComparisonScope } from './types/dedup'
+// Composables
+import { useDeduplication } from './composables/useDeduplication'
 
 // Theme handling
 const isDark = ref(true) // Default to dark theme
 const theme = ref(isDark.value ? 'dark' : 'light')
+
+// Initialize deduplication
+const { strategy, duplicates, loadSavedStrategy, findDuplicates, clearDuplicates } = useDeduplication()
 
 watch(isDark, (newValue) => {
   theme.value = newValue ? 'dark' : 'light'
@@ -28,44 +28,11 @@ watch(isDark, (newValue) => {
 onMounted(() => {
   // Initialize theme
   document.documentElement.classList.toggle('dark', isDark.value)
+  // Load saved strategy
+  loadSavedStrategy()
 })
 
-// Tab handling
-const currentTab = ref('text')
-const isSettingsExpanded = ref(false)
-const duplicates = ref<DuplicateGroup[]>([])
-const strategy = ref<DedupStrategy>({
-  case_sensitive: false,
-  ignore_whitespace: true,
-  ignore_punctuation: false,
-  normalize_unicode: false,
-  split_strategy: SplitStrategy.Sentences,
-  comparison_scope: ComparisonScope.Both,
-  min_length: 0,
-  similarity_threshold: 0.8
-})
-
-const tabs = [
-  { id: 'text', name: 'Text' },
-  { id: 'json', name: 'JSON' },
-  { id: 'image', name: 'Images' },
-  { id: 'binary', name: 'Binary' }
-]
-
-const comparisonScopes = [
-  { id: 'WITHINUNIT', name: 'Within Unit' },
-  { id: 'ACROSSUNITS', name: 'Across Units' },
-  { id: 'BOTH', name: 'Both' }
-]
-
-const splitStrategies = [
-  { id: 'CHARACTERS', name: 'Characters' },
-  { id: 'WORDS', name: 'Words' },
-  { id: 'SENTENCES', name: 'Sentences' },
-  { id: 'PARAGRAPHS', name: 'Paragraphs' },
-  { id: 'WHOLETEXT', name: 'Whole Text' }
-]
-
+// Editor setup
 const editor = useEditor({
   extensions: [
     StarterKit,
@@ -76,79 +43,36 @@ const editor = useEditor({
   content: '',
   editorProps: {
     attributes: {
-      class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none'
+      class: 'prose prose-sm prose-invert focus:outline-none max-w-none'
     }
   }
 })
 
-function handleStrategyChange<K extends keyof DedupStrategy>(
-  key: K,
-  value: DedupStrategy[K]
-) {
-  console.log('App: Strategy change:', key, value)
-  strategy.value = {
-    ...strategy.value,
-    [key]: value
-  }
-  
-  // Save strategy changes to backend
-  invoke('set_strategy', { strategy: strategy.value })
-    .catch(error => {
-      console.error('Failed to save strategy:', error)
-    })
+// Handle form submission
+const handleSubmit = async () => {
+  if (!editor.value?.getText()) return
+  await findDuplicates(editor.value.getText())
 }
 
-async function handleSubmit() {
-  if (!editor.value?.getText()) {
-    console.log('No text to process')
-    return
-  }
-  
-  const text = editor.value.getText()
-  console.log('Processing text:', text)
-  
-  try {
-    await invoke('update_strategy', {
-      strategy: strategy.value
-    })
-    
-    console.log('Processing text with backend')
-    const result = await invoke<DuplicateGroup[]>('process_text', {
-      text: text
-    })
-    
-    console.log('Got duplicates:', JSON.stringify(result, null, 2))
-    duplicates.value = result || []
-  } catch (error) {
-    console.error('Error finding duplicates:', error)
-    duplicates.value = []
+// Clear results
+const handleClear = () => {
+  clearDuplicates()
+  if (editor.value) {
+    editor.value.commands.setContent('')
   }
 }
 
-onMounted(async () => {
-  try {
-    const savedStrategy = await invoke<DedupStrategy>('get_strategy')
-    if (savedStrategy) {
-      strategy.value = savedStrategy
-    }
-  } catch (error) {
-    console.error('Error getting strategy:', error)
-  }
-})
-
-function handleClear() {
-  editor.value?.commands.clearContent()
-  duplicates.value = []
-}
-
-function addTestDuplicate() {
+// Add test duplicate text
+const addTestDuplicate = () => {
   const testText = `This is a test sentence.
 Another unique sentence here.
 This is a test sentence.
 Some more text.
 Another unique sentence here.`
   
-  editor.value?.commands.setContent(testText)
+  if (editor.value) {
+    editor.value.commands.setContent(testText)
+  }
 }
 </script>
 
@@ -179,8 +103,8 @@ Another unique sentence here.`
 
             <!-- Settings -->
             <DedupSettings
-              v-model:strategy="strategy.value"
-              :is-dark="true"
+              v-model:strategy="strategy"
+              :isDark="isDark"
             />
           </div>
 
@@ -216,7 +140,7 @@ Another unique sentence here.`
   </div>
 </template>
 
-<style>
+<style lang="postcss">
 .ProseMirror {
   @apply min-h-[200px] p-4 outline-none;
 }

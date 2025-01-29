@@ -16,6 +16,15 @@ const emit = defineEmits<{
   'update:strategy': [strategy: DedupStrategy]
 }>()
 
+const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) => {
+  const newStrategy = {
+    ...props.strategy,
+    [key]: value
+  }
+  emit('update:strategy', newStrategy)
+}
+
+// Settings options
 const splitStrategies = [
   { id: SplitStrategy.Characters, name: 'Characters' },
   { id: SplitStrategy.Words, name: 'Words' },
@@ -29,15 +38,6 @@ const comparisonScopes = [
   { id: ComparisonScope.AcrossUnits, name: 'Across Units' },
   { id: ComparisonScope.Both, name: 'Both' },
 ]
-
-const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) => {
-  console.log('DedupSettings: Handling change:', key, value)
-  const newStrategy = {
-    ...props.strategy,
-    [key]: value
-  }
-  emit('update:strategy', newStrategy)
-}
 </script>
 
 <template>
@@ -130,7 +130,7 @@ const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrateg
         <input
           type="range"
           :value="props.strategy.similarity_threshold * 100"
-          @input="(e) => handleChange('similarity_threshold', Number((e.target as HTMLInputElement).value) / 100)"
+          @input="e => handleChange('similarity_threshold', Number((e.target as HTMLInputElement).value) / 100)"
           min="0"
           max="100"
           step="1"
@@ -145,8 +145,8 @@ const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrateg
       <div class="space-y-2">
         <Text size="sm" weight="medium" class="text-gray-300">Split Strategy</Text>
         <Listbox 
-          :model-value="props.strategy.split_strategy"
-          @update:model-value="(value) => handleChange('split_strategy', value)"
+          :modelValue="props.strategy.split_strategy"
+          @update:modelValue="value => handleChange('split_strategy', value)"
         >
           <div class="relative">
             <ListboxButton
@@ -202,8 +202,8 @@ const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrateg
       <div class="space-y-2">
         <Text size="sm" weight="medium" class="text-gray-300">Comparison Scope</Text>
         <Listbox 
-          :model-value="props.strategy.comparison_scope"
-          @update:model-value="(value) => handleChange('comparison_scope', value)"
+          :modelValue="props.strategy.comparison_scope"
+          @update:modelValue="value => handleChange('comparison_scope', value)"
         >
           <div class="relative">
             <ListboxButton

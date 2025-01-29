@@ -13,10 +13,10 @@ defineProps<Props>()
   <div class="w-full">
     <Text
       v-if="label"
-      as="label"
+      as="span"
       variant="label"
       size="sm"
-      class="mb-1 block"
+      class="mb-1 block cursor-pointer"
     >
       {{ label }}
     </Text>
