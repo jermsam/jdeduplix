@@ -1,6 +1,6 @@
 # JDeduplix: AI-Powered Smart Deduplication System
 
-JDeduplix is a cutting-edge deduplication system that leverages artificial intelligence and decentralized technologies to provide intelligent, accurate, and efficient data deduplication across multiple data types. Built with Rust for performance and safety, it combines advanced AI models with peer-to-peer networking to create a powerful, flexible, and scalable solution.
+JDeduplix is a cutting-edge deduplication system that leverages artificial intelligence and decentralized technologies to provide intelligent, accurate, and efficient data deduplication across multiple data types. Built with Rust for performance and safety, it combines advanced AI models with peer-to-peer networking and CRDT-based version control to create a powerful, flexible, and scalable solution.
 
 ## ✨ Highlights
 
@@ -11,6 +11,8 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 - **High-Performance Vector Search**: FAISS HNSW for efficient similarity matching
 - **Modern UI**: Tauri + Vue frontend with real-time visualizations
 - **Flexible Storage**: Multiple backend options including decentralized storage
+- **CRDT-Based Version Control**: Loro-powered versioning with automatic conflict resolution
+- **Rich Data Types**: Support for complex data structures with semantic merging
 
 ## 🎯 Use Cases
 
@@ -20,6 +22,8 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 - **Database Optimization**: Reduce storage costs with intelligent data deduplication
 - **Collaborative Environments**: P2P sharing with version control and conflict resolution
 - **Edge Computing**: Distributed processing with local and network storage options
+- **Collaborative Deduplication**: Real-time collaboration with automatic conflict resolution
+- **Version-Aware Storage**: Track and manage data versions with semantic understanding
 
 ## 💡 Key Features
 
@@ -60,6 +64,28 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
   - Distributed cache coordination
   - Automatic cache invalidation
 
+### CRDT Version Control
+- **Loro Integration**:
+  - High-performance CRDT implementation
+  - Rich data type support (Text, List, Map, Tree)
+  - Automatic semantic merging
+  - Branch and fork support
+- **Version Management**:
+  - Complete DAG-based history tracking
+  - Branch-based workflow
+  - Automatic conflict resolution
+  - Manual conflict resolution when needed
+- **Collaborative Features**:
+  - Real-time multi-user editing
+  - Branch-level permissions
+  - Version diffing and comparison
+  - Semantic merge previews
+- **Performance Optimizations**:
+  - Fast document loading (sub-millisecond)
+  - Shallow snapshot support
+  - Block-level storage
+  - Selective history loading
+
 ### Advanced Features
 - **ML Conflict Resolution**:
   - Confidence-weighted decisions
@@ -90,43 +116,54 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 - **AI Framework**: Custom ML pipeline
 - **Vector Search**: FAISS HNSW
 - **P2P**: LibP2P and Holepunch implementations
+- **Version Control**: Loro CRDT (v1.0+)
+  - Rich CRDT types
+  - High-performance DAG
+  - Semantic merging
+  - Block-level storage
 
 ### Storage
-- **Local**: Sled DB for high performance
-- **Distributed**: IPFS and Hypercore
+- **Local**: 
+  - Sled DB for high performance
+  - Loro block storage for versions
+- **Distributed**: 
+  - IPFS and Hypercore
+  - CRDT-aware replication
 - **Vector**: Weaviate/Pinecone integration
-- **Version Control**: Git-based history
+- **Version History**: Loro DAG-based tracking
 
-## 🚀 Getting Started
+## 🔄 Version Control Features
 
-[Coming Soon]
+### Rich Data Types
+- **Text CRDT**: Smart merging of formatted text
+- **List CRDT**: Ordered collections with move support
+- **Map CRDT**: Key-value structures
+- **Tree CRDT**: Hierarchical data with move operations
+- **Nested Types**: Complex JSON-like structures
 
-## 📚 Documentation
+### Version Management
+- **Branch Operations**:
+  - Create/switch branches
+  - Fork for independent work
+  - Merge with automatic conflict resolution
+  - Rebase/squash support (WIP)
+- **History Navigation**:
+  - Checkout specific versions
+  - Browse version DAG
+  - Compare versions
+  - Selective loading
 
-[Coming Soon]
-
-## 🤝 Contributing
-
-We welcome contributions! Whether you're interested in:
-- Adding new AI models
-- Implementing additional P2P protocols
-- Improving the UI/UX
-- Enhancing documentation
-- Reporting bugs
-- Suggesting features
-
-Please check our contributing guidelines [Coming Soon].
-
-## 📄 License
-
-[Coming Soon]
-
-## 🔗 Links
-
-- Documentation: [Coming Soon]
-- API Reference: [Coming Soon]
-- Contributing Guide: [Coming Soon]
-- Change Log: [Coming Soon]
+### Collaboration
+- **Real-time Features**:
+  - Multi-user editing
+  - Automatic merging
+  - Conflict prevention
+  - Change visualization
+- **Integration**:
+  - P2P synchronization
+  - Distributed storage
+  - External VCS bridges
+  - API access
 
 ## 📊 System Architecture
 
@@ -158,6 +195,7 @@ flowchart TD
         AI[AI Processing]:::backend
         IDX[Smart Indexing]:::backend
         DIST[Distributed Coordinator]:::dist
+        VC[Loro CRDT Version Control]:::backend
     end
 
     subgraph ST[Storage Layer]
@@ -393,6 +431,8 @@ flowchart TD
 - **High-Performance Search**: Vector-based similarity search using FAISS HNSW
 - **Flexible Storage**: Pluggable storage backends supporting Sled DB, file system, and vector databases
 - **P2P Capabilities**: Decentralized data sharing and deduplication using IPFS and LibP2P
+- **CRDT-Based Version Control**: Loro-powered versioning with automatic conflict resolution
+- **Rich Data Types**: Support for complex data structures with semantic merging
 
 ## 🏗️ Architecture
 
@@ -428,12 +468,20 @@ flowchart TD
   - Unified peer discovery and routing
   - Cross-protocol replication support
 
+- **Version Control**:
+  - Loro CRDT (v1.0+)
+  - Rich CRDT types
+  - High-performance DAG
+  - Semantic merging
+  - Block-level storage
+
 ### Storage Options
 - Sled DB for high-performance local storage
 - File system integration for simple deployments
 - Vector DB support (Weaviate/Pinecone)
 - IPFS for LibP2P-based storage
 - Hypercore for Holepunch-based storage
+- Loro block storage for versions
 
 ## 🚀 Getting Started
 
