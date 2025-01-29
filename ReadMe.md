@@ -30,78 +30,78 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 ### AI-Powered Deduplication
 - **Smart Classification**: Automatic content type detection and routing
 - **Specialized Engines**:
-  - ML Text Deduper for documents and code
-  - GNN JSON Deduper for structured data
-  - CNN Image Deduper for visual content
-  - Deep Learning Binary Deduper for raw data
+    - ML Text Deduper for documents and code
+    - GNN JSON Deduper for structured data
+    - CNN Image Deduper for visual content
+    - Deep Learning Binary Deduper for raw data
 - **Intelligent Matching**:
-  - Fuzzy matching with confidence scoring
-  - Perceptual hashing for media files
-  - Graph-based structural similarity
-  - Vector embedding comparison
+    - Fuzzy matching with confidence scoring
+    - Perceptual hashing for media files
+    - Graph-based structural similarity
+    - Vector embedding comparison
 
 ### Decentralized Architecture
 - **Pluggable P2P Layer**:
-  - LibP2P with IPFS storage
-  - Holepunch with Hypercore support
-  - Protocol-agnostic adapter interface
-  - Cross-protocol communication
+    - LibP2P with IPFS storage
+    - Holepunch with Hypercore support
+    - Protocol-agnostic adapter interface
+    - Cross-protocol communication
 - **Distributed Processing**:
-  - Horizontal scaling with worker nodes
-  - Load balancing and task distribution
-  - Fault tolerance and recovery
-  - Real-time progress monitoring
+    - Horizontal scaling with worker nodes
+    - Load balancing and task distribution
+    - Fault tolerance and recovery
+    - Real-time progress monitoring
 
 ### Smart Storage
 - **Multi-Backend Support**:
-  - High-performance Sled DB
-  - IPFS for decentralized storage
-  - Hypercore for append-only data
-  - Vector databases (Weaviate/Pinecone)
+    - High-performance Sled DB
+    - IPFS for decentralized storage
+    - Hypercore for append-only data
+    - Vector databases (Weaviate/Pinecone)
 - **Intelligent Caching**:
-  - Smart cache with vector indexing
-  - Content-aware caching strategies
-  - Distributed cache coordination
-  - Automatic cache invalidation
+    - Smart cache with vector indexing
+    - Content-aware caching strategies
+    - Distributed cache coordination
+    - Automatic cache invalidation
 
 ### CRDT Version Control
 - **Loro Integration**:
-  - High-performance CRDT implementation
-  - Rich data type support (Text, List, Map, Tree)
-  - Automatic semantic merging
-  - Branch and fork support
+    - High-performance CRDT implementation
+    - Rich data type support (Text, List, Map, Tree)
+    - Automatic semantic merging
+    - Branch and fork support
 - **Version Management**:
-  - Complete DAG-based history tracking
-  - Branch-based workflow
-  - Automatic conflict resolution
-  - Manual conflict resolution when needed
+    - Complete DAG-based history tracking
+    - Branch-based workflow
+    - Automatic conflict resolution
+    - Manual conflict resolution when needed
 - **Collaborative Features**:
-  - Real-time multi-user editing
-  - Branch-level permissions
-  - Version diffing and comparison
-  - Semantic merge previews
+    - Real-time multi-user editing
+    - Branch-level permissions
+    - Version diffing and comparison
+    - Semantic merge previews
 - **Performance Optimizations**:
-  - Fast document loading (sub-millisecond)
-  - Shallow snapshot support
-  - Block-level storage
-  - Selective history loading
+    - Fast document loading (sub-millisecond)
+    - Shallow snapshot support
+    - Block-level storage
+    - Selective history loading
 
 ### Advanced Features
 - **ML Conflict Resolution**:
-  - Confidence-weighted decisions
-  - Automated threshold tuning
-  - Human review integration
-  - Learning from feedback
+    - Confidence-weighted decisions
+    - Automated threshold tuning
+    - Human review integration
+    - Learning from feedback
 - **Version Control**:
-  - Full history tracking
-  - Change auditing
-  - Rollback capabilities
-  - Branch management
+    - Full history tracking
+    - Change auditing
+    - Rollback capabilities
+    - Branch management
 - **API Integration**:
-  - REST and WebSocket APIs
-  - Client SDKs
-  - Real-time events
-  - Comprehensive documentation
+    - REST and WebSocket APIs
+    - Client SDKs
+    - Real-time events
+    - Comprehensive documentation
 
 ## 🛠️ Technical Stack
 
@@ -117,18 +117,18 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 - **Vector Search**: FAISS HNSW
 - **P2P**: LibP2P and Holepunch implementations
 - **Version Control**: Loro CRDT (v1.0+)
-  - Rich CRDT types
-  - High-performance DAG
-  - Semantic merging
-  - Block-level storage
+    - Rich CRDT types
+    - High-performance DAG
+    - Semantic merging
+    - Block-level storage
 
 ### Storage
-- **Local**: 
-  - Sled DB for high performance
-  - Loro block storage for versions
-- **Distributed**: 
-  - IPFS and Hypercore
-  - CRDT-aware replication
+- **Local**:
+    - Sled DB for high performance
+    - Loro block storage for versions
+- **Distributed**:
+    - IPFS and Hypercore
+    - CRDT-aware replication
 - **Vector**: Weaviate/Pinecone integration
 - **Version History**: Loro DAG-based tracking
 
@@ -143,27 +143,27 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 
 ### Version Management
 - **Branch Operations**:
-  - Create/switch branches
-  - Fork for independent work
-  - Merge with automatic conflict resolution
-  - Rebase/squash support (WIP)
+    - Create/switch branches
+    - Fork for independent work
+    - Merge with automatic conflict resolution
+    - Rebase/squash support (WIP)
 - **History Navigation**:
-  - Checkout specific versions
-  - Browse version DAG
-  - Compare versions
-  - Selective loading
+    - Checkout specific versions
+    - Browse version DAG
+    - Compare versions
+    - Selective loading
 
 ### Collaboration
 - **Real-time Features**:
-  - Multi-user editing
-  - Automatic merging
-  - Conflict prevention
-  - Change visualization
+    - Multi-user editing
+    - Automatic merging
+    - Conflict prevention
+    - Change visualization
 - **Integration**:
-  - P2P synchronization
-  - Distributed storage
-  - External VCS bridges
-  - API access
+    - P2P synchronization
+    - Distributed storage
+    - External VCS bridges
+    - API access
 
 ## 📊 System Architecture
 
@@ -453,35 +453,35 @@ flowchart TD
 
 ### Backend (Rust + AI)
 - **Deduplication Engine**:
-  - ML Text Deduper
-  - GNN JSON Deduper
-  - CNN Image Deduper
-  - Deep Learning Binary Deduper
-  
+    - ML Text Deduper
+    - GNN JSON Deduper
+    - CNN Image Deduper
+    - Deep Learning Binary Deduper
+
 - **Smart Indexing**:
-  - FAISS HNSW Vector Search
-  - Perceptual Hashing
-  - Graph Matching Algorithms
+    - FAISS HNSW Vector Search
+    - Perceptual Hashing
+    - Graph Matching Algorithms
 
 - **ML Conflict Resolution**:
-  - Confidence-weighted decision making
-  - Automated threshold tuning
-  - Human-in-the-loop review system
+    - Confidence-weighted decision making
+    - Automated threshold tuning
+    - Human-in-the-loop review system
 
 - **P2P Network Layer**:
-  - Pluggable protocol architecture
-  - LibP2P implementation with IPFS storage
-  - Holepunch implementation with Hypercore storage
-  - Protocol-agnostic adapter interface
-  - Unified peer discovery and routing
-  - Cross-protocol replication support
+    - Pluggable protocol architecture
+    - LibP2P implementation with IPFS storage
+    - Holepunch implementation with Hypercore storage
+    - Protocol-agnostic adapter interface
+    - Unified peer discovery and routing
+    - Cross-protocol replication support
 
 - **Version Control**:
-  - Loro CRDT (v1.0+)
-  - Rich CRDT types
-  - High-performance DAG
-  - Semantic merging
-  - Block-level storage
+    - Loro CRDT (v1.0+)
+    - Rich CRDT types
+    - High-performance DAG
+    - Semantic merging
+    - Block-level storage
 
 ### Storage Options
 - Sled DB for high-performance local storage
