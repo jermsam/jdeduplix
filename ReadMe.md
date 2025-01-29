@@ -8,35 +8,39 @@ JDeduplix is a cutting-edge deduplication system that leverages artificial intel
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true }}}%%
-graph TD
+flowchart TD
     classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
     classDef backend fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
     classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
     classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
-    
-    subgraph "Frontend Layer"
+
+    subgraph FE[Frontend Layer]
+        direction TB
         UI[Tauri + Vue UI]:::frontend
         VIS[Visualizations]:::frontend
         EXP[Export Tools]:::frontend
-        API[API Console]:::frontend
+        APIC[API Console]:::frontend
     end
 
-    subgraph "Backend Layer"
+    subgraph BE[Backend Layer]
+        direction TB
         DE[Deduplication Engine]:::backend
         AI[AI Processing]:::backend
         IDX[Smart Indexing]:::backend
         DIST[Distributed Coordinator]:::dist
     end
 
-    subgraph "Storage Layer"
+    subgraph ST[Storage Layer]
+        direction TB
         DB[(Databases)]:::storage
         FS[(File System)]:::storage
         VDB[(Vector DBs)]:::storage
         GIT[(Version Control)]:::storage
     end
 
-    subgraph "API Gateway"
+    subgraph AG[API Gateway]
+        direction TB
         REST[REST API]:::api
         WS[WebSocket API]:::api
         SDK[Client SDKs]:::api
@@ -47,18 +51,17 @@ graph TD
     AI --> IDX
     IDX --> DB & FS & VDB & GIT
     IDX --> UI
-    UI --> VIS & EXP & API
+    UI --> VIS & EXP & APIC
     
-    DE --> DIST
-    DIST --> |Distributed Processing| DE
+    DE <--> DIST
     
-    API & UI --> REST & WS
+    APIC & UI --> REST & WS
     REST & WS --> SDK
 
-    style Frontend fill:#1a1c1d,stroke:#42b883,stroke-width:2px
-    style Backend fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
-    style Storage fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
-    style "API Gateway" fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
+    style FE fill:#1a1c1d,stroke:#42b883,stroke-width:2px
+    style BE fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
+    style ST fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
+    style AG fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
 ```
 
 ### Frontend Architecture
