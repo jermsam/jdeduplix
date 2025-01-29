@@ -1,6 +1,6 @@
 [package]
 name = "jdeduplix"
-version = "0.1.0"
+version = "0.0.0"
 description = "A cutting-edge deduplication system that leverages artificial intelligence and decentralized technologies"
 authors = ["you"]
 edition = "2021"
