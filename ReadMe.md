@@ -1,6 +1,132 @@
 # JDeduplix: AI-Powered Smart Deduplication System
 
-JDeduplix is a cutting-edge deduplication system that leverages artificial intelligence to provide intelligent, accurate, and efficient data deduplication across multiple data types.
+JDeduplix is a cutting-edge deduplication system that leverages artificial intelligence and decentralized technologies to provide intelligent, accurate, and efficient data deduplication across multiple data types. Built with Rust for performance and safety, it combines advanced AI models with peer-to-peer networking to create a powerful, flexible, and scalable solution.
+
+## ✨ Highlights
+
+- **Multi-Modal AI Deduplication**: Specialized AI models for text, JSON, images, and binary data
+- **Pluggable P2P Architecture**: Support for both LibP2P and Holepunch protocols out of the box
+- **Distributed Processing**: Scale horizontally with distributed worker nodes
+- **Smart Conflict Resolution**: ML-powered conflict detection with human-in-the-loop capabilities
+- **High-Performance Vector Search**: FAISS HNSW for efficient similarity matching
+- **Modern UI**: Tauri + Vue frontend with real-time visualizations
+- **Flexible Storage**: Multiple backend options including decentralized storage
+
+## 🎯 Use Cases
+
+- **Enterprise Data Management**: Eliminate redundant data across large organizations
+- **Content Distribution**: Efficient content sharing with decentralized storage
+- **Digital Asset Management**: Smart deduplication of media files and assets
+- **Database Optimization**: Reduce storage costs with intelligent data deduplication
+- **Collaborative Environments**: P2P sharing with version control and conflict resolution
+- **Edge Computing**: Distributed processing with local and network storage options
+
+## 💡 Key Features
+
+### AI-Powered Deduplication
+- **Smart Classification**: Automatic content type detection and routing
+- **Specialized Engines**:
+  - ML Text Deduper for documents and code
+  - GNN JSON Deduper for structured data
+  - CNN Image Deduper for visual content
+  - Deep Learning Binary Deduper for raw data
+- **Intelligent Matching**:
+  - Fuzzy matching with confidence scoring
+  - Perceptual hashing for media files
+  - Graph-based structural similarity
+  - Vector embedding comparison
+
+### Decentralized Architecture
+- **Pluggable P2P Layer**:
+  - LibP2P with IPFS storage
+  - Holepunch with Hypercore support
+  - Protocol-agnostic adapter interface
+  - Cross-protocol communication
+- **Distributed Processing**:
+  - Horizontal scaling with worker nodes
+  - Load balancing and task distribution
+  - Fault tolerance and recovery
+  - Real-time progress monitoring
+
+### Smart Storage
+- **Multi-Backend Support**:
+  - High-performance Sled DB
+  - IPFS for decentralized storage
+  - Hypercore for append-only data
+  - Vector databases (Weaviate/Pinecone)
+- **Intelligent Caching**:
+  - Smart cache with vector indexing
+  - Content-aware caching strategies
+  - Distributed cache coordination
+  - Automatic cache invalidation
+
+### Advanced Features
+- **ML Conflict Resolution**:
+  - Confidence-weighted decisions
+  - Automated threshold tuning
+  - Human review integration
+  - Learning from feedback
+- **Version Control**:
+  - Full history tracking
+  - Change auditing
+  - Rollback capabilities
+  - Branch management
+- **API Integration**:
+  - REST and WebSocket APIs
+  - Client SDKs
+  - Real-time events
+  - Comprehensive documentation
+
+## 🛠️ Technical Stack
+
+### Frontend
+- **Framework**: Tauri + Vue.js
+- **UI Components**: Custom-built with dark theme
+- **Visualizations**: Real-time graphs and heatmaps
+- **P2P Controls**: Protocol selection and network management
+
+### Backend
+- **Core**: Rust for performance and safety
+- **AI Framework**: Custom ML pipeline
+- **Vector Search**: FAISS HNSW
+- **P2P**: LibP2P and Holepunch implementations
+
+### Storage
+- **Local**: Sled DB for high performance
+- **Distributed**: IPFS and Hypercore
+- **Vector**: Weaviate/Pinecone integration
+- **Version Control**: Git-based history
+
+## 🚀 Getting Started
+
+[Coming Soon]
+
+## 📚 Documentation
+
+[Coming Soon]
+
+## 🤝 Contributing
+
+We welcome contributions! Whether you're interested in:
+- Adding new AI models
+- Implementing additional P2P protocols
+- Improving the UI/UX
+- Enhancing documentation
+- Reporting bugs
+- Suggesting features
+
+Please check our contributing guidelines [Coming Soon].
+
+## 📄 License
+
+[Coming Soon]
+
+## 🔗 Links
+
+- Documentation: [Coming Soon]
+- API Reference: [Coming Soon]
+- Contributing Guide: [Coming Soon]
+- Change Log: [Coming Soon]
 
 ## 📊 System Architecture
 
