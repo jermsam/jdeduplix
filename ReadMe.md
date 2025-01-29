@@ -12,35 +12,53 @@ graph TD
     classDef frontend fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
     classDef backend fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
+    classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
+    classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
     
     subgraph "Frontend Layer"
         UI[Tauri + Vue UI]:::frontend
         VIS[Visualizations]:::frontend
         EXP[Export Tools]:::frontend
+        API[API Console]:::frontend
     end
 
     subgraph "Backend Layer"
         DE[Deduplication Engine]:::backend
         AI[AI Processing]:::backend
         IDX[Smart Indexing]:::backend
+        DIST[Distributed Coordinator]:::dist
     end
 
     subgraph "Storage Layer"
         DB[(Databases)]:::storage
         FS[(File System)]:::storage
         VDB[(Vector DBs)]:::storage
+        GIT[(Version Control)]:::storage
+    end
+
+    subgraph "API Gateway"
+        REST[REST API]:::api
+        WS[WebSocket API]:::api
+        SDK[Client SDKs]:::api
     end
 
     UI --> DE
     DE --> AI
     AI --> IDX
-    IDX --> DB & FS & VDB
+    IDX --> DB & FS & VDB & GIT
     IDX --> UI
-    UI --> VIS & EXP
+    UI --> VIS & EXP & API
+    
+    DE --> DIST
+    DIST --> |Distributed Processing| DE
+    
+    API & UI --> REST & WS
+    REST & WS --> SDK
 
     style Frontend fill:#1a1c1d,stroke:#42b883,stroke-width:2px
     style Backend fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
     style Storage fill:#1a1c1d,stroke:#ff6b6b,stroke-width:2px
+    style "API Gateway" fill:#1a1c1d,stroke:#ff9f43,stroke-width:2px
 ```
 
 ### Frontend Architecture
@@ -51,6 +69,7 @@ flowchart TD
     classDef primary fill:#42b883,stroke:#35495e,stroke-width:2px,color:#1a1c1d
     classDef secondary fill:#3eaf7c,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
     classDef action fill:#4fc08d,stroke:#2c3e50,stroke-width:2px,color:#1a1c1d
+    classDef api fill:#ff9f43,stroke:#e67e22,stroke-width:2px,color:#1a1c1d
 
     subgraph UI[User Interface]
         direction TB
@@ -64,16 +83,24 @@ flowchart TD
         H[Export Options]:::action
         I[Download]:::action
         J[Share]:::action
+        K[API Documentation]:::api
+        L[Version History]:::secondary
+        M[Integration Hub]:::api
         
         A --> B
         A --> C
+        A --> K
+        A --> M
         B --> D
         C --> E
         C --> F
         C --> G
+        C --> L
         E & F & G --> H
         H --> I
         H --> J
+        
+        M --> |External Systems| K
     end
 
     style UI fill:#1a1c1d,stroke:#42b883,stroke-width:2px
@@ -87,6 +114,8 @@ flowchart TD
     classDef engine fill:#2b7489,stroke:#1a1c1d,stroke-width:2px,color:white
     classDef ai fill:#6b9fff,stroke:#2d5a9e,stroke-width:2px,color:#1a1c1d
     classDef storage fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:white
+    classDef dist fill:#a55eea,stroke:#8854d0,stroke-width:2px,color:white
+    classDef version fill:#20bf6b,stroke:#26de81,stroke-width:2px,color:#1a1c1d
 
     subgraph Core[Deduplication Core]
         direction TB
@@ -108,6 +137,14 @@ flowchart TD
         J2[File System]:::storage
         J3[Vector DB]:::storage
         
+        %% New Components
+        K[Model Registry]:::ai
+        L[Feedback Loop]:::ai
+        M[Version Control]:::version
+        N[Distributed Coordinator]:::dist
+        O[Worker Nodes]:::dist
+        P[API Gateway]:::engine
+        
         A --> B
         B --> C
         C --> D1 & D2 & D3 & D4
@@ -117,6 +154,20 @@ flowchart TD
         G --> H1 & H2 & H3
         H1 & H2 & H3 --> I
         I --> J1 & J2 & J3
+        
+        %% New Connections
+        E --> L
+        L --> K
+        K --> C
+        B --> M
+        N --> O
+        O --> B
+        B --> P
+        
+        %% Feedback Loops
+        L --> |Model Updates| D1 & D2 & D3 & D4
+        F --> |Threshold Updates| L
+        M --> |Version History| I
     end
 
     style Core fill:#1a1c1d,stroke:#2b7489,stroke-width:2px
