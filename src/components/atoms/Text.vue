@@ -3,23 +3,23 @@ interface Props {
   as?: 'p' | 'span' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
   size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl'
   weight?: 'normal' | 'medium' | 'semibold' | 'bold'
-  leading?: 'none' | 'tight' | 'normal' | 'relaxed'
+  color?: 'default' | 'muted' | 'white'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   as: 'p',
   size: 'base',
   weight: 'normal',
-  leading: 'normal'
+  color: 'default'
 })
 
 const sizeClasses = {
-  xs: 'text-xs',
-  sm: 'text-sm',
-  base: 'text-base',
-  lg: 'text-lg',
-  xl: 'text-xl',
-  '2xl': 'text-2xl'
+  xs: 'text-xs leading-4',
+  sm: 'text-sm leading-5',
+  base: 'text-base leading-6',
+  lg: 'text-lg leading-7',
+  xl: 'text-xl leading-7',
+  '2xl': 'text-2xl leading-8'
 }
 
 const weightClasses = {
@@ -29,11 +29,10 @@ const weightClasses = {
   bold: 'font-bold'
 }
 
-const leadingClasses = {
-  none: 'leading-none',
-  tight: 'leading-tight',
-  normal: 'leading-normal',
-  relaxed: 'leading-relaxed'
+const colorClasses = {
+  default: 'text-gray-900 dark:text-gray-100',
+  muted: 'text-gray-500 dark:text-gray-400',
+  white: 'text-white'
 }
 </script>
 
@@ -41,10 +40,10 @@ const leadingClasses = {
   <component
     :is="props.as"
     :class="[
+      'font-sans',
       sizeClasses[props.size],
       weightClasses[props.weight],
-      leadingClasses[props.leading],
-      'text-gray-900 dark:text-gray-100'
+      colorClasses[props.color]
     ]"
   >
     <slot />

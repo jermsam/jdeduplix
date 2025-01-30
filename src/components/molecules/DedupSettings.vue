@@ -1,10 +1,9 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
-import { defineEmits, defineProps, ref } from 'vue'
+import { defineEmits, defineProps, ref, computed } from 'vue'
 import { type DedupStrategy, SplitStrategy, ComparisonScope, SimilarityMethod } from '../../types/dedup'
 import Text from '../atoms/Text.vue'
-import { ChevronUpDownIcon, CheckIcon } from '@heroicons/vue/20/solid'
-import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
+import Switch from '../atoms/Switch.vue'
 
 const props = defineProps<{
   strategy: DedupStrategy
@@ -18,12 +17,11 @@ const emit = defineEmits<{
 // Track active preset
 const activePreset = ref<string>("Similar Ideas")
 
-const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) => {
-  const newStrategy = {
+function handleChange<K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) {
+  emit('update:strategy', {
     ...props.strategy,
     [key]: value
-  }
-  emit('update:strategy', newStrategy)
+  })
 }
 
 // Settings options
@@ -38,6 +36,12 @@ const splitStrategies = [
 const comparisonScopes = [
   { id: ComparisonScope.Local, name: 'Local' },
   { id: ComparisonScope.Global, name: 'Global' },
+]
+
+const similarityMethods = [
+  { id: SimilarityMethod.Exact, name: 'Exact' },
+  { id: SimilarityMethod.Fuzzy, name: 'Fuzzy' },
+  { id: SimilarityMethod.Semantic, name: 'Semantic' },
 ]
 
 // Define the type for presets
@@ -211,241 +215,194 @@ if (props.strategy.similarity_threshold === 1.0) {
   applyPreset(presets[2]); // Similar Ideas is at index 2
 }
 
+const toggles = [
+  { key: 'case_sensitive' as keyof DedupStrategy, label: 'Case Sensitive' },
+  { key: 'ignore_whitespace' as keyof DedupStrategy, label: 'Ignore Whitespace' },
+  { key: 'ignore_punctuation' as keyof DedupStrategy, label: 'Ignore Punctuation' },
+  { key: 'normalize_unicode' as keyof DedupStrategy, label: 'Normalize Unicode' },
+] as const
 
+const showAdvanced = ref(false)
+
+const sliderStyle = computed(() => ({
+  '--value-percent': props.strategy.similarity_threshold
+}))
 </script>
 
 <template>
-  <div class="rounded-lg overflow-hidden bg-[#1A1D23] p-4 space-y-4">
-    <!-- Presets -->
-    <div class="space-y-2">
-      <Text size="sm" class="text-gray-400">Choose a Preset</Text>
-      <div class="grid grid-cols-2 gap-4">
-        <div v-for="preset in presets" :key="preset.name" 
-             class="relative rounded-md p-3 cursor-pointer transition-all duration-200"
-             :class="[
-               activePreset === preset.name 
-                 ? 'bg-blue-500/20 ring-2 ring-blue-500'
-                 : 'hover:bg-gray-700/50'
-             ]"
-             @click="applyPreset(preset)">
-          <Text size="sm" weight="medium" class="text-gray-200">{{ preset.name }}</Text>
-          <Text size="xs" class="text-gray-400 mt-1">{{ preset.description }}</Text>
+  <div class="bg-[#1A1D23] rounded-lg overflow-hidden font-sans">
+    <!-- Main Settings -->
+    <div class="p-3">
+      <!-- Presets -->
+      <div class="mb-3">
+        <h3 class="text-xs font-medium text-gray-400 mb-2">Choose a Preset</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            v-for="preset in presets"
+            :key="preset.name"
+            @click="applyPreset(preset)"
+            :class="[
+              'p-2 rounded-lg text-left hover:bg-[#23262E] transition-colors',
+              activePreset === preset.name ? 'bg-[#23262E] ring-1 ring-indigo-500' : 'bg-[#1E2128]'
+            ]"
+          >
+            <div class="text-xs font-medium leading-snug text-gray-200">{{ preset.name }}</div>
+            <div class="text-xs leading-relaxed text-gray-400 mt-0.5">{{ preset.description }}</div>
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Quick Settings -->
-    <div class="flex flex-wrap gap-3">
-      <button
-        @click="handleChange('case_sensitive', !props.strategy.case_sensitive)"
-        :class="[
-          'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-          props.strategy.case_sensitive 
-            ? 'bg-indigo-600 text-white' 
-            : 'bg-[#1A1D23] text-gray-300',
-          'hover:bg-[#1E2128]'
-        ]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M13.024 9.25c.47 0 .827-.433.637-.863a4 4 0 00-4.094-2.364c-.468.05-.665.576-.43.984l1.08 1.868a.75.75 0 00.649.375h2.158zM7.84 7.758c-.236-.408-.79-.5-1.068-.12A3.982 3.982 0 006 10c0 .884.287 1.7.772 2.363.278.38.832.287 1.068-.12l1.078-1.868a.75.75 0 000-.75L7.84 7.758zM13.024 10.75H10.866a.75.75 0 00-.649.375L9.138 12.993c-.235.408-.038.934.43.984a4 4 0 004.094-2.364c.19-.43-.168-.863-.638-.863z" />
-        </svg>
-        Case Sensitive
-      </button>
-
-      <button
-        @click="handleChange('ignore_whitespace', !props.strategy.ignore_whitespace)"
-        :class="[
-          'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-          props.strategy.ignore_whitespace 
-            ? 'bg-indigo-600 text-white' 
-            : 'bg-[#1A1D23] text-gray-300',
-          'hover:bg-[#1E2128]'
-        ]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path fill-rule="evenodd" d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v11.75A2.75 2.75 0 0016.75 18h-12A2.75 2.75 0 012 15.25V3.5zm3.75 7a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-4.5zm0 3a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-4.5zM5 5.75A.75.75 0 015.75 5h4.5a.75.75 0 01.75.75v.75a.75.75 0 01-.75.75h-4.5A.75.75 0 015 6.5v-.75z" clip-rule="evenodd" />
-        </svg>
-        Ignore Whitespace
-      </button>
-
-      <button
-        @click="handleChange('ignore_punctuation', !props.strategy.ignore_punctuation)"
-        :class="[
-          'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-          props.strategy.ignore_punctuation 
-            ? 'bg-indigo-600 text-white' 
-            : 'bg-[#1A1D23] text-gray-300',
-          'hover:bg-[#1E2128]'
-        ]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l4.122 4.12A1.5 1.5 0 0117 7.622V16.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 16.5v-13z" />
-        </svg>
-        Ignore Punctuation
-      </button>
-
-      <button
-        @click="handleChange('normalize_unicode', !props.strategy.normalize_unicode)"
-        :class="[
-          'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-          props.strategy.normalize_unicode 
-            ? 'bg-indigo-600 text-white' 
-            : 'bg-[#1A1D23] text-gray-300',
-          'hover:bg-[#1E2128]'
-        ]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l4.122 4.12A1.5 1.5 0 0117 7.622V16.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 16.5v-13z" />
-        </svg>
-        Normalize Unicode
-      </button>
-    </div>
-
-    <!-- Similarity Threshold -->
-    <div class="space-y-2">
-      <div class="flex justify-between items-center">
-        <Text size="sm" weight="medium" class="text-gray-300">Similarity Threshold</Text>
-        <Text size="sm" class="text-gray-400">
-          {{ Math.round((props.strategy.similarity_threshold || 0) * 100) }}%
-        </Text>
-      </div>
-      <div class="relative w-full h-1.5">
-        <div class="absolute inset-0 rounded-full bg-[#1A1D23]"></div>
-        <div 
-          class="absolute inset-y-0 left-0 bg-indigo-600 rounded-full transition-all duration-150"
-          :style="{ width: `${(props.strategy.similarity_threshold || 0) * 100}%` }"
-        ></div>
-        <div 
-          class="absolute top-1/2 -translate-y-1/2 -ml-2.5 w-5 h-5 rounded-full bg-white border-2 border-indigo-600 transition-all duration-150 pointer-events-none"
-          :style="{ left: `${(props.strategy.similarity_threshold || 0) * 100}%` }"
-        ></div>
+      <!-- Similarity -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-medium text-gray-300">Similarity</div>
+          <div class="text-xs font-medium text-gray-400">{{ Math.round(props.strategy.similarity_threshold * 100) }}%</div>
+        </div>
         <input
           type="range"
-          :value="(props.strategy.similarity_threshold || 0) * 100"
-          @input="e => handleChange('similarity_threshold', Number((e.target as HTMLInputElement).value) / 100)"
           min="0"
-          max="100"
-          step="1"
-          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        >
+          max="1"
+          step="0.05"
+          :value="props.strategy.similarity_threshold"
+          :style="sliderStyle"
+          class="w-full"
+          @input="(e) => handleChange('similarity_threshold', parseFloat((e.target as HTMLInputElement).value))"
+        />
       </div>
     </div>
 
-    <!-- Split Strategy and Comparison Scope -->
-    <div class="grid grid-cols-2 gap-4">
-      <!-- Split Strategy -->
-      <div class="space-y-2">
-        <Text size="sm" weight="medium" class="text-gray-300">Split Strategy</Text>
-        <Listbox 
-          :modelValue="props.strategy.split_strategy"
-          @update:modelValue="value => handleChange('split_strategy', value)"
-        >
-          <div class="relative">
-            <ListboxButton
-              class="relative w-full cursor-pointer rounded-lg py-2 pl-3 pr-10 text-left bg-[#1A1D23] text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <span class="block truncate">
-                {{ splitStrategies.find(s => s.id === props.strategy.split_strategy)?.name }}
-              </span>
-              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </span>
-            </ListboxButton>
-
-            <transition
-              leave-active-class="transition duration-100 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <ListboxOptions
-                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md py-1 bg-[#1A1D23] text-gray-300 focus:outline-none text-base sm:text-sm"
-              >
-                <ListboxOption
-                  v-for="strat in splitStrategies"
-                  :key="strat.id"
-                  :value="strat.id"
-                  v-slot="{ active, selected }"
-                >
-                  <li
-                    :class="[
-                      'relative cursor-pointer select-none py-2 pl-10 pr-4',
-                      active ? 'bg-[#1E2128]' : '',
-                      selected ? 'bg-indigo-600 text-white' : ''
-                    ]"
-                  >
-                    <span :class="['block truncate', selected ? 'font-medium' : 'font-normal']">
-                      {{ strat.name }}
-                    </span>
-                    <span
-                      v-if="selected"
-                      class="absolute inset-y-0 left-0 flex items-center pl-3 text-white"
-                    >
-                      <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </transition>
-          </div>
-        </Listbox>
+    <!-- Advanced Settings Toggle -->
+    <button 
+      @click="showAdvanced = !showAdvanced"
+      class="w-full p-2 border-t border-gray-800 flex items-center justify-between hover:bg-[#1E2128] transition-colors"
+    >
+      <span class="text-xs font-medium text-gray-300">Advanced Settings</span>
+      <div 
+        class="w-4 h-4 rounded-full bg-[#1E2128] flex items-center justify-center transition-transform"
+        :class="{ 'rotate-180': showAdvanced }"
+      >
+        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
       </div>
+    </button>
 
-      <!-- Comparison Scope -->
-      <div class="space-y-2">
-        <Text size="sm" weight="medium" class="text-gray-300">Comparison Scope</Text>
-        <Listbox 
-          :modelValue="props.strategy.comparison_scope"
-          @update:modelValue="value => handleChange('comparison_scope', value)"
-        >
-          <div class="relative">
-            <ListboxButton
-              class="relative w-full cursor-pointer rounded-lg py-2 pl-3 pr-10 text-left bg-[#1A1D23] text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <span class="block truncate">
-                {{ comparisonScopes.find(s => s.id === props.strategy.comparison_scope)?.name }}
-              </span>
-              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </span>
-            </ListboxButton>
-
-            <transition
-              leave-active-class="transition duration-100 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <ListboxOptions
-                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md py-1 bg-[#1A1D23] text-gray-300 focus:outline-none text-base sm:text-sm"
-              >
-                <ListboxOption
-                  v-for="scope in comparisonScopes"
-                  :key="scope.id"
-                  :value="scope.id"
-                  v-slot="{ active, selected }"
-                >
-                  <li
-                    :class="[
-                      'relative cursor-pointer select-none py-2 pl-10 pr-4',
-                      active ? 'bg-[#1E2128]' : '',
-                      selected ? 'bg-indigo-600 text-white' : ''
-                    ]"
-                  >
-                    <span :class="['block truncate', selected ? 'font-medium' : 'font-normal']">
-                      {{ scope.name }}
-                    </span>
-                    <span
-                      v-if="selected"
-                      class="absolute inset-y-0 left-0 flex items-center pl-3 text-white"
-                    >
-                      <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </transition>
+    <!-- Advanced Settings Content -->
+    <div v-if="showAdvanced" class="border-t border-gray-800">
+      <div class="p-3 space-y-3">
+        <!-- Toggles -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div 
+            v-for="toggle in toggles" 
+            :key="toggle.key"
+            class="flex items-center justify-between p-2 rounded-lg bg-[#1E2128]"
+          >
+            <span class="text-xs font-medium text-gray-300">{{ toggle.label }}</span>
+            <Switch
+              :model-value="props.strategy[toggle.key] as boolean"
+              @update:model-value="(value) => handleChange(toggle.key, value)"
+            />
           </div>
-        </Listbox>
+        </div>
+
+        <!-- Split Strategy -->
+        <div>
+          <div class="text-xs font-medium text-gray-300 mb-2">Split Strategy</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              v-for="strategy in splitStrategies"
+              :key="strategy.id"
+              @click="handleChange('split_strategy', strategy.id)"
+              :class="[
+                'p-2 rounded-lg text-xs transition-colors text-center',
+                props.strategy.split_strategy === strategy.id
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
+              ]"
+            >
+              {{ strategy.name }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Method -->
+        <div>
+          <div class="text-xs font-medium text-gray-300 mb-2">Method</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              v-for="method in similarityMethods"
+              :key="method.id"
+              @click="handleChange('similarity_method', method.id)"
+              :class="[
+                'p-2 rounded-lg text-xs transition-colors text-center',
+                props.strategy.similarity_method === method.id
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
+              ]"
+            >
+              {{ method.name }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Scope -->
+        <div>
+          <div class="text-xs font-medium text-gray-300 mb-2">Scope</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              v-for="scope in comparisonScopes"
+              :key="scope.id"
+              @click="handleChange('comparison_scope', scope.id)"
+              :class="[
+                'p-2 rounded-lg text-xs transition-colors text-center',
+                props.strategy.comparison_scope === scope.id
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
+              ]"
+            >
+              {{ scope.name }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #1E2128;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: rgb(99 102 241); /* indigo-500 */
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgb(129 140 248); /* indigo-400 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: rgb(99 102 241);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgb(129 140 248);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Color for the filled part of the slider */
+input[type="range"] {
+  background: linear-gradient(to right, rgb(99 102 241) 0%, rgb(99 102 241) calc(var(--value-percent) * 100%), #1E2128 calc(var(--value-percent) * 100%), #1E2128 100%);
+}
+</style>
