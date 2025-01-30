@@ -236,10 +236,18 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 .theme-base {
   @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark text-theme-text-primary-light dark:text-theme-text-primary-dark min-h-screen transition-colors duration-200;
   background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
-    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
-  background-size: 20px 20px, 20px 20px, auto;
+    linear-gradient(to right, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E"),
+    radial-gradient(
+      circle at center,
+      transparent 0%,
+      rgba(0, 0, 0, 0.01) 70%,
+      rgba(0, 0, 0, 0.02) 100%
+    );
+  background-size: 8px 8px, 8px 8px, 40px 40px, 40px 40px, auto, 100% 100%;
 }
 
 .theme-surface {
@@ -248,8 +256,9 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   @apply border-opacity-20 dark:border-opacity-20;
   @apply backdrop-blur-xl;
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.03),
-    0 1px 3px rgba(0, 0, 0, 0.02);
+    0 1px 2px rgba(0, 0, 0, 0.02),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 4px 8px rgba(0, 0, 0, 0.01);
   position: relative;
 }
 
@@ -257,32 +266,43 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(118deg, 
-    rgba(255, 255, 255, 0.07), 
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.07) 100%
-  );
+  background: 
+    linear-gradient(118deg, 
+      rgba(255, 255, 255, 0.07), 
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.07) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.05),
+      transparent 30%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.05)
+    );
   pointer-events: none;
 }
 
-.theme-elevated {
-  @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark;
-  box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 1px 2px rgba(0, 0, 0, 0.03),
-    0 2px 4px -1px rgba(0, 0, 0, 0.02);
-}
-
-/* Paper-like effects */
 .card {
-  @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark rounded-xl transition-all duration-200;
+  @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark rounded-xl transition-all duration-300;
   box-shadow: 
     0 1px 2px rgba(0, 0, 0, 0.02),
-    0 1px 3px rgba(0, 0, 0, 0.03),
-    0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 4px 8px rgba(0, 0, 0, 0.01),
+    0 8px 16px rgba(0, 0, 0, 0.01);
   position: relative;
   isolation: isolate;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+}
+
+.card:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 4px 8px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.01),
+    0 16px 32px rgba(0, 0, 0, 0.01);
 }
 
 .card::before {
@@ -291,12 +311,21 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   inset: 0;
   z-index: -1;
   @apply rounded-xl;
-  background: linear-gradient(118deg, 
-    rgba(255, 255, 255, 0.1), 
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
+  background: 
+    linear-gradient(118deg, 
+      rgba(255, 255, 255, 0.1), 
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.1) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.05),
+      transparent 15%,
+      transparent 85%,
+      rgba(255, 255, 255, 0.05)
+    );
+  transition: opacity 0.3s ease;
 }
 
 .card::after {
@@ -305,14 +334,16 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   inset: 0;
   z-index: -2;
   @apply rounded-xl;
-  background: linear-gradient(to bottom, 
-    rgba(255, 255, 255, 0.07), 
+  background: linear-gradient(
+    to bottom, 
+    rgba(255, 255, 255, 0.08), 
+    rgba(255, 255, 255, 0.03) 30%,
+    rgba(0, 0, 0, 0.02) 70%,
     rgba(0, 0, 0, 0.04)
   );
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
-/* Enhanced paper texture */
 .paper-texture {
   position: relative;
   isolation: isolate;
@@ -322,8 +353,8 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-texture'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper-texture)'/%3E%3C/svg%3E");
-  opacity: 0.25;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-texture'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper-texture)'/%3E%3C/svg%3E");
+  opacity: 0.2;
   mix-blend-mode: overlay;
   pointer-events: none;
 }
@@ -334,53 +365,72 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   inset: 0;
   background: 
     repeating-linear-gradient(
-      to right,
+      45deg,
       transparent,
       transparent 1px,
-      rgba(0, 0, 0, 0.015) 1px,
-      rgba(0, 0, 0, 0.015) 2px
+      rgba(0, 0, 0, 0.01) 1px,
+      rgba(0, 0, 0, 0.01) 2px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.01) 1px,
+      rgba(0, 0, 0, 0.01) 2px
     );
-  background-size: 4px 100%;
-  opacity: 0.4;
+  background-size: 4px 4px;
+  opacity: 0.3;
   mix-blend-mode: overlay;
   pointer-events: none;
 }
 
-/* Paper fold effect */
 .paper-fold {
   position: relative;
 }
 
-.paper-fold::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  left: -1px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(0, 0, 0, 0.07) 15%,
-    rgba(0, 0, 0, 0.07) 85%,
-    transparent
-  );
-}
-
+.paper-fold::before,
 .paper-fold::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: 2px;
+}
+
+.paper-fold::before {
+  left: -1px;
+  background: 
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(0, 0, 0, 0.04) 10%,
+      rgba(0, 0, 0, 0.05) 50%,
+      rgba(0, 0, 0, 0.04) 90%,
+      transparent
+    ),
+    linear-gradient(
+      to right,
+      transparent,
+      rgba(0, 0, 0, 0.02) 100%
+    );
+}
+
+.paper-fold::after {
   right: -1px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(255, 255, 255, 0.07) 15%,
-    rgba(255, 255, 255, 0.07) 85%,
-    transparent
-  );
+  background: 
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 255, 255, 0.05) 10%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.05) 90%,
+      transparent
+    ),
+    linear-gradient(
+      to left,
+      transparent,
+      rgba(255, 255, 255, 0.02) 100%
+    );
 }
 
 .button-secondary {
@@ -391,28 +441,42 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
   @apply hover:bg-opacity-90 dark:hover:bg-opacity-90;
   position: relative;
   overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .button-secondary::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(118deg, 
-    rgba(255, 255, 255, 0.15), 
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.15) 100%
-  );
+  background: 
+    linear-gradient(118deg, 
+      rgba(255, 255, 255, 0.15), 
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.15) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.1),
+      transparent 30%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.1)
+    );
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+.button-secondary:hover {
+  transform: translateY(-1px) translateZ(0);
 }
 
 .button-secondary:hover::before {
   opacity: 1;
 }
 
-.brand-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-accent;
+.button-secondary:active {
+  transform: translateY(1px) translateZ(0);
 }
 
 ::-webkit-scrollbar {
@@ -421,9 +485,28 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
+  background-image: 
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.01),
+      transparent 2px
+    );
 }
 
 ::-webkit-scrollbar-thumb {
   @apply bg-theme-border-light/35 dark:bg-theme-border-dark/35 rounded-full hover:bg-theme-border-light/50 dark:hover:bg-theme-border-dark/50 transition-colors;
+  background-image: 
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.1),
+      transparent 30%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.1)
+    );
+}
+
+.brand-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-accent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 </style>
