@@ -224,6 +224,18 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 </script>
 
 <style lang="postcss">
+/* Smooth scroll behavior for entire app */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Improved selection styling */
+::selection {
+  @apply bg-brand-primary/20 dark:bg-brand-primary/30;
+}
+
 .ProseMirror {
   @apply min-h-[200px] font-mono leading-relaxed;
   font-feature-settings: "liga" 0;
@@ -236,18 +248,131 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 .theme-base {
   @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark text-theme-text-primary-light dark:text-theme-text-primary-dark min-h-screen transition-colors duration-200;
   background-image: 
+    /* Fine grain texture */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.015'/%3E%3C/svg%3E"),
+    /* Paper fiber texture */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.02'/%3E%3C/svg%3E"),
+    /* Fine grid */
     linear-gradient(to right, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    /* Medium grid */
     linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-    url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E"),
+    /* Subtle vignette */
     radial-gradient(
-      circle at center,
+      circle at 50% 50%,
       transparent 0%,
       rgba(0, 0, 0, 0.01) 70%,
       rgba(0, 0, 0, 0.02) 100%
     );
-  background-size: 8px 8px, 8px 8px, 40px 40px, 40px 40px, auto, 100% 100%;
+  background-size: auto, auto, 8px 8px, 8px 8px, 40px 40px, 40px 40px, 100% 100%;
+  
+  /* Subtle paper tilt effect */
+  transform: perspective(1000px) rotateX(0.5deg);
+  transform-origin: 50% 0;
+  
+  /* Improved animation performance */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* Ultra-premium card hover effect */
+.card {
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px) translateZ(0) scale(1.01);
+}
+
+/* Ink-like text rendering */
+.prose {
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+/* Paper edge effect */
+.paper-edge {
+  position: relative;
+}
+
+.paper-edge::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.03) 15%,
+    rgba(0, 0, 0, 0.03) 85%,
+    transparent 100%
+  );
+}
+
+/* Enhanced button press effect */
+.button-secondary:active {
+  transform: translateY(1px) scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Paper shadow on scroll */
+@keyframes paperShadowIn {
+  from { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  to { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+}
+
+.scrolled {
+  animation: paperShadowIn 0.3s ease-out forwards;
+}
+
+/* Premium focus states */
+:focus-visible {
+  @apply outline-none ring-2 ring-brand-primary/30 ring-offset-2 ring-offset-theme-bg-base-light dark:ring-offset-theme-bg-base-dark;
+  transition: ring-color 0.2s ease;
+}
+
+/* Improved dark mode paper texture */
+.dark .theme-base {
+  background-image: 
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.03'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.04'/%3E%3C/svg%3E"),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 70%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+}
+
+/* Smooth transition between light/dark modes */
+.theme-base * {
+  @apply transition-colors duration-200;
+}
+
+/* Premium scrollbar track */
+::-webkit-scrollbar-track {
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.01) 2px,
+      rgba(0, 0, 0, 0.01) 4px
+    );
+}
+
+/* Ultra-smooth animations */
+* {
+  @apply motion-reduce:transition-none motion-reduce:transform-none;
 }
 
 .theme-surface {
