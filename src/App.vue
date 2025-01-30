@@ -21,6 +21,11 @@ const theme = ref(isDark.value ? 'dark' : 'light')
 // Initialize deduplication
 const { strategy, duplicates, findDuplicates, clearDuplicates, loadSavedStrategy } = useDeduplication()
 
+// Handle deletion of duplicates
+const handleDelete = (index: number) => {
+  duplicates.value = duplicates.value.filter((_, i) => i !== index)
+}
+
 // Load initial strategy
 onMounted(async () => {
   // Initialize theme
