@@ -253,16 +253,15 @@
   }
 
   .preset-button-active {
-    @apply bg-gradient-to-r from-brand-primary to-brand-secondary
+    @apply bg-gradient-to-r from-brand-primary to-brand-accent
            text-white shadow-lg shadow-brand-primary/20
            hover:shadow-glow-light dark:hover:shadow-glow-dark;
   }
 
   .preset-button-inactive {
-    @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark
-           text-theme-text-primary-light dark:text-theme-text-primary-dark
-           hover:border-brand-primary/30
-           hover:bg-gradient-to-r hover:from-brand-primary/5 hover:to-brand-secondary/5;
+    @apply bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700
+           text-theme-text-secondary-light dark:text-theme-text-secondary-dark
+           shadow-sm hover:shadow-md;
   }
 
   /* Range input styles */

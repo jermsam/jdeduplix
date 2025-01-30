@@ -44,7 +44,7 @@
       <div class="grid lg:grid-cols-3 gap-4">
         <!-- Editor Section -->
         <div class="lg:col-span-2 space-y-4">
-          <div class="card">
+          <div class="card paper-texture">
             <div class="card-header">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -225,23 +225,196 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 
 <style lang="postcss">
 .ProseMirror {
-  @apply min-h-[200px] font-mono;
+  @apply min-h-[200px] font-mono leading-relaxed;
+  font-feature-settings: "liga" 0;
 }
 
 .ProseMirror p {
-  @apply my-0;
+  @apply my-3;
 }
 
-.ProseMirror p.is-editor-empty:first-child::before {
-  @apply text-gray-400 float-left h-0 pointer-events-none;
-  content: attr(data-placeholder);
+.theme-base {
+  @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark text-theme-text-primary-light dark:text-theme-text-primary-dark min-h-screen transition-colors duration-200;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+  background-size: 20px 20px, 20px 20px, auto;
 }
 
-.dark .ProseMirror p.is-editor-empty:first-child::before {
-  @apply text-gray-500;
+.theme-surface {
+  @apply bg-theme-bg-surface-light dark:bg-theme-bg-surface-dark;
+  @apply border-theme-border-light dark:border-theme-border-dark;
+  @apply border-opacity-20 dark:border-opacity-20;
+  @apply backdrop-blur-xl;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
 }
 
-/* Custom scrollbar for Webkit browsers */
+.theme-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, 
+    rgba(255, 255, 255, 0.07), 
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.07) 100%
+  );
+  pointer-events: none;
+}
+
+.theme-elevated {
+  @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 2px 4px -1px rgba(0, 0, 0, 0.02);
+}
+
+/* Paper-like effects */
+.card {
+  @apply bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark rounded-xl transition-all duration-200;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.02),
+    0 1px 3px rgba(0, 0, 0, 0.03),
+    0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  position: relative;
+  isolation: isolate;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  @apply rounded-xl;
+  background: linear-gradient(118deg, 
+    rgba(255, 255, 255, 0.1), 
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  @apply rounded-xl;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.07), 
+    rgba(0, 0, 0, 0.04)
+  );
+  opacity: 0.6;
+}
+
+/* Enhanced paper texture */
+.paper-texture {
+  position: relative;
+  isolation: isolate;
+}
+
+.paper-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-texture'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper-texture)'/%3E%3C/svg%3E");
+  opacity: 0.25;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.paper-texture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      to right,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.015) 1px,
+      rgba(0, 0, 0, 0.015) 2px
+    );
+  background-size: 4px 100%;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Paper fold effect */
+.paper-fold {
+  position: relative;
+}
+
+.paper-fold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  left: -1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 0, 0, 0.07) 15%,
+    rgba(0, 0, 0, 0.07) 85%,
+    transparent
+  );
+}
+
+.paper-fold::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  right: -1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.07) 15%,
+    rgba(255, 255, 255, 0.07) 85%,
+    transparent
+  );
+}
+
+.button-secondary {
+  @apply p-2 rounded-lg transition-all duration-300;
+  @apply text-theme-text-secondary-light dark:text-theme-text-secondary-dark;
+  @apply hover:text-theme-text-primary-light dark:hover:text-theme-text-primary-dark;
+  @apply hover:bg-theme-bg-surface-light dark:hover:bg-theme-bg-surface-dark;
+  @apply hover:bg-opacity-90 dark:hover:bg-opacity-90;
+  position: relative;
+  overflow: hidden;
+}
+
+.button-secondary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, 
+    rgba(255, 255, 255, 0.15), 
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.button-secondary:hover::before {
+  opacity: 1;
+}
+
+.brand-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-accent;
+}
+
 ::-webkit-scrollbar {
   @apply w-2;
 }
@@ -251,10 +424,6 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors duration-200;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 hover:bg-gray-600;
+  @apply bg-theme-border-light/35 dark:bg-theme-border-dark/35 rounded-full hover:bg-theme-border-light/50 dark:hover:bg-theme-border-dark/50 transition-colors;
 }
 </style>

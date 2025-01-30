@@ -8,30 +8,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        theme: {
-          'bg-base-light': '#FFFFFF',
-          'bg-base-dark': '#0F1117',
-          'bg-surface-light': '#F1F5F9',
-          'bg-surface-dark': '#1E1F2E',
-          'bg-elevated-light': '#FFFFFF',
-          'bg-elevated-dark': '#252838',
-          'border-light': '#E2E8F0',
-          'border-dark': '#2D334D',
-          'text-primary-light': '#0F172A',
-          'text-primary-dark': '#F1F5F9',
-          'text-secondary-light': '#334155',
-          'text-secondary-dark': '#94A3B8',
-          'text-muted-light': '#64748B',
-          'text-muted-dark': '#64748B'
-        },
+        'theme-bg-base-light': '#EDF0F5',
+        'theme-bg-base-dark': '#161821',
+        'theme-bg-surface-light': '#DDE2EA',
+        'theme-bg-surface-dark': '#1E2028',
+        'theme-bg-elevated-light': '#F5F7FA',
+        'theme-bg-elevated-dark': '#272A34',
+        'theme-border-light': '#C5CCD7',
+        'theme-border-dark': '#383C48',
+        'theme-text-primary-light': '#2C3544',
+        'theme-text-primary-dark': '#EBEEF2',
+        'theme-text-secondary-light': '#4A5468',
+        'theme-text-secondary-dark': '#A3ABB9',
+        'theme-text-muted-light': '#697285',
+        'theme-text-muted-dark': '#787F91',
         brand: {
           primary: '#6366F1',
           secondary: '#818CF8',
-          accent: '#4F46E5',
-          success: '#10B981',
-          warning: '#F59E0B',
-          error: '#EF4444',
-          info: '#3B82F6'
+          accent: '#4F46E5'
         }
       },
       boxShadow: {
