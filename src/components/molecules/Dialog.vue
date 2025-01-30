@@ -8,7 +8,7 @@ interface Props {
 }
 
 defineEmits<{
-  (e: 'close'): void;
+  'close': [[], [boolean]];
 }>();
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,13 +26,13 @@ const sizeClasses = {
 
 <template>
   <TransitionRoot appear :show="open" as="template">
-    <Dialog as="div" class="relative z-50" @close="$emit('close')">
+    <Dialog :open="open" as="div" class="relative z-50" >
       <TransitionChild
         as="template"
-        enter="duration-300 ease-out"
+        enter="ease-out duration-300"
         enter-from="opacity-0"
         enter-to="opacity-100"
-        leave="duration-200 ease-in"
+        leave="ease-in duration-200"
         leave-from="opacity-100"
         leave-to="opacity-0"
       >
@@ -43,10 +43,10 @@ const sizeClasses = {
         <div class="flex min-h-full items-center justify-center p-4 text-center">
           <TransitionChild
             as="template"
-            enter="duration-300 ease-out"
+            enter="ease-out duration-300"
             enter-from="opacity-0 scale-95"
             enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
+            leave="ease-in duration-200"
             leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95"
           >

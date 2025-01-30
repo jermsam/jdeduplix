@@ -10,7 +10,7 @@ interface Props {
   isDark?: boolean
 }
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:strategy', value: Props['strategy']): void;
 }>();
 
@@ -260,7 +260,7 @@ const sliderStyle = computed(() => ({
             @click="applyPreset(preset)"
             class="preset-button"
             :class="[
-              Math.abs(props.strategy.similarity_threshold - preset.config.similarity_threshold) < 0.05
+              Math.abs(props.strategy.similarity_threshold - (preset.config.similarity_threshold ?? 1.0)) < 0.05
                 ? 'preset-button-active'
                 : 'preset-button-inactive'
             ]"
