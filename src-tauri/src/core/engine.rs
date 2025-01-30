@@ -15,19 +15,27 @@ impl DeduplicationEngine {
 
     pub fn update_strategy(&mut self, strategy: DedupStrategy) {
         println!("Engine: Updating strategy to {:?}", strategy);
+        // Create new classifier with updated strategy and clear any existing content
         self.classifier = TextClassifier::new(strategy);
+        self.clear_duplicates();
     }
 
     pub fn process_text(&mut self, content: String) -> usize {
         println!("Engine: Processing text: {}", content);
+        // Clear existing content before processing new text
+        self.classifier.clear();
         self.classifier.add_text(content)
     }
 
     pub fn get_duplicates(&self) -> Vec<Vec<&str>> {
-        println!("Engine: Getting duplicates");
         let dupes = self.classifier.find_duplicates();
-        println!("Engine: Found {} duplicate groups", dupes.len());
-        dupes
+        dupes.iter()
+            .map(|group| {
+                group.iter()
+                    .map(|&idx| self.classifier.get_text_content(idx))
+                    .collect()
+            })
+            .collect()
     }
 
     pub fn get_strategy(&self) -> DedupStrategy {

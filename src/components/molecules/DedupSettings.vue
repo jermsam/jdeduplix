@@ -1,6 +1,6 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
-import { defineEmits, defineProps } from 'vue'
+import { defineEmits, defineProps, ref } from 'vue'
 import { type DedupStrategy, SplitStrategy, ComparisonScope } from '../../types/dedup'
 import Text from '../atoms/Text.vue'
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/vue/20/solid'
@@ -14,6 +14,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:strategy': [strategy: DedupStrategy]
 }>()
+
+// Track active preset
+const activePreset = ref<string>("Similar Sentences")
 
 const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) => {
   const newStrategy = {
@@ -37,10 +40,104 @@ const comparisonScopes = [
   { id: ComparisonScope.AcrossUnits, name: 'Across Units' },
   { id: ComparisonScope.Both, name: 'Both' },
 ]
+
+// Define the type for presets
+interface Preset {
+  name: string;
+  config: Partial<DedupStrategy>;
+}
+
+const presets: Preset[] = [
+  {
+    name: "Identical Text",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: false,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.WholeText,
+      comparison_scope: ComparisonScope.Both,
+      min_length: 3,
+      similarity_threshold: 1.0
+    }
+  },
+  {
+    name: "Similar Sentences",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Sentences,
+      comparison_scope: ComparisonScope.Both,
+      min_length: 3,
+      similarity_threshold: 0.8
+    }
+  },
+  {
+    name: "Similar Content",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Words,
+      comparison_scope: ComparisonScope.Both,
+      min_length: 3,
+      similarity_threshold: 0.75
+    }
+  },
+  {
+    name: "Similar Paragraphs",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Paragraphs,
+      comparison_scope: ComparisonScope.Both,
+      min_length: 10,
+      similarity_threshold: 0.7
+    }
+  }
+];
+
+const applyPreset = (preset: Preset) => {
+  activePreset.value = preset.name;
+  const newStrategy = { ...props.strategy, ...preset.config };
+  emit('update:strategy', newStrategy);
+}
+
+// Apply Similar Sentences preset by default
+if (props.strategy.similarity_threshold === 1.0) {
+  applyPreset(presets[1]); // Similar Sentences is at index 1
+}
+
+
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="rounded-lg overflow-hidden bg-[#1A1D23] p-4 space-y-4">
+    <!-- Presets -->
+    <div class="space-y-2">
+      <Text size="sm" class="text-gray-400">Presets</Text>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="preset in presets"
+          :key="preset.name"
+          @click="applyPreset(preset)"
+          class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+          :class="[
+            activePreset === preset.name
+              ? 'bg-indigo-600 text-white'
+              : 'bg-[#2A2D35] text-gray-300 hover:bg-[#3A3D45]'
+          ]"
+        >
+          {{ preset.name }}
+        </button>
+      </div>
+    </div>
+
     <!-- Quick Settings -->
     <div class="flex flex-wrap gap-3">
       <button

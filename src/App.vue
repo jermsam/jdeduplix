@@ -8,6 +8,7 @@ import { Placeholder } from '@tiptap/extension-placeholder'
 import Container from './components/atoms/Container.vue'
 import Text from './components/atoms/Text.vue'
 import DedupSettings from './components/molecules/DedupSettings.vue'
+import DuplicateResults from './components/molecules/DuplicateResults.vue'
 import Button from './components/atoms/Button.vue'
 
 // Composables
@@ -58,22 +59,32 @@ const handleSubmit = async () => {
 
 // Clear results
 const handleClear = () => {
-  clearDuplicates()
   if (editor.value) {
     editor.value.commands.setContent('')
   }
+  clearDuplicates()
 }
 
 // Add test duplicate text
 const addTestDuplicate = () => {
-  const testText = `This is a test sentence.
-Another unique sentence here.
-This is a test sentence.
-Some more text.
-Another unique sentence here.`
-  
   if (editor.value) {
-    editor.value.commands.setContent(testText)
+    const text = `Project Meeting Notes
+
+The quarterly review meeting is scheduled for 3PM on Thursday. All team leads must attend and prepare their status reports. Please ensure your reports are submitted by Wednesday COB.
+
+The Q4 review meeting will be held at 3pm on Thursday. Team leads are required to attend with their status reports. Submit all reports before close of business on Wednesday.
+
+Key project deliverables include implementing the new authentication system and updating the user interface. The dev team estimates 4-6 weeks for the authentication system implementation. We need to carefully test all security aspects before deployment.
+
+Among our main deliverables, we'll be working on a new auth system and UI updates. The development team thinks the authentication implementation will take 4 to 6 weeks. Security testing must be thorough before we can deploy.
+
+IMPORTANT: Please review the attached security guidelines. These guidelines MUST be followed for all code changes.
+
+Important - All developers should read the security guidelines attached. Following these guidelines is mandatory for any code modifications.
+
+Contact Sarah@company.com for technical questions. You can reach out to sarah@company.com if you need technical assistance. For general inquiries, email support@company.com.`;
+
+    editor.value.commands.setContent(text);
   }
 }
 </script>
@@ -81,20 +92,16 @@ Another unique sentence here.`
 <template>
   <div class="min-h-screen bg-[#0F1115] text-gray-100">
     <main class="p-6">
-    
       <Container maxWidth="2xl">
-        <div class="space-y-6">
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-3">
-            <Button variant="primary" @click="handleSubmit" class="bg-indigo-600 hover:bg-indigo-500">
-              Find Duplicates
-            </Button>
-            <Button variant="ghost" @click="handleClear" class="text-gray-300 hover:bg-gray-800">
-              Clear
-            </Button>
-            <Button variant="ghost" @click="addTestDuplicate" class="text-gray-300 hover:bg-gray-800">
-              Add Test Text
-            </Button>
+        <div class="space-y-8">
+          <!-- Header -->
+          <div class="flex items-center justify-between">
+            <Text size="2xl" weight="bold">JDeduplix</Text>
+            <div class="flex gap-2">
+              <Button variant="secondary" @click="handleClear">Clear</Button>
+              <Button variant="secondary" @click="addTestDuplicate">Add Test Text</Button>
+              <Button variant="primary" @click="handleSubmit">Find Duplicates</Button>
+            </div>
           </div>
 
           <!-- Editor and Settings -->
@@ -112,31 +119,7 @@ Another unique sentence here.`
           </div>
 
           <!-- Results -->
-          <div v-if="duplicates.length > 0" class="space-y-4">
-            <div
-              v-for="(group, idx) in duplicates"
-              :key="idx"
-              class="rounded-lg overflow-hidden bg-[#1A1D23]"
-            >
-              <div class="p-3 border-b border-gray-700 flex items-center justify-between">
-                <Text size="sm" class="text-gray-400">
-                  Similarity: {{ Math.round(group.similarity * 100) }}%
-                </Text>
-              </div>
-              <div class="p-4 space-y-3">
-                <div class="rounded p-3 bg-[#1E2128]">
-                  {{ group.original }}
-                </div>
-                <div
-                  v-for="(text, textIdx) in group.duplicates"
-                  :key="textIdx"
-                  class="rounded p-3 bg-[#1E2128]"
-                >
-                  {{ text }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <DuplicateResults :duplicates="duplicates" />
         </div>
       </Container>
     </main>

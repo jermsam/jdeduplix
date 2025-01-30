@@ -1,38 +1,53 @@
 // JDeduplix - A cutting-edge deduplication system
 //! Main library entry point that coordinates all components
 
-pub mod core;
-mod commands;
+pub mod core {
+    pub mod vector;
+    pub mod classifier;
+    pub mod types;
+    pub mod semantic;
+}
+pub mod settings;
+pub mod commands;
 
 use std::sync::Mutex;
-use crate::core::engine::DeduplicationEngine;
+use crate::core::classifier::TextClassifier;
+use crate::core::types::DedupStrategy;
 
 type Result<T> = std::result::Result<T, String>;
 
-/// Application state for managing deduplication
 pub struct AppState {
-    engine: Mutex<DeduplicationEngine>,
+    pub classifier: Mutex<TextClassifier>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            engine: Mutex::new(DeduplicationEngine::new()),
+            classifier: Mutex::new(TextClassifier::new(DedupStrategy::default())),
         }
     }
 }
 
 /// Initialize and run the Tauri application
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
     tauri::Builder::default()
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
-            commands::process_text,
-            commands::get_duplicates,
-            commands::get_strategy,
+            commands::add_text,
+            commands::find_duplicates,
+            commands::get_text,
+            commands::get_all_texts,
+            commands::clear,
             commands::update_strategy,
-            commands::clear_duplicates
+            commands::get_strategy,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(context)
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                api.prevent_exit();
+            }
+        });
 }
