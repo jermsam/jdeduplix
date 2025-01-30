@@ -13,6 +13,12 @@ pub struct TextClassifier {
     semantic_analyzer: SemanticAnalyzer,
 }
 
+impl Default for TextClassifier {
+    fn default() -> Self {
+        Self::new(DedupStrategy::default())
+    }
+}
+
 impl TextClassifier {
     pub fn new(strategy: DedupStrategy) -> Self {
         Self {
@@ -29,11 +35,20 @@ impl TextClassifier {
     pub fn update_strategy(&mut self, strategy: DedupStrategy) {
         self.strategy = strategy;
         
+        // If switching to semantic similarity, rebuild the corpus
+        if matches!(self.strategy.similarity_method, SimilarityMethod::Semantic) {
+            self.semantic_analyzer = SemanticAnalyzer::new();
+            // Add all documents to the corpus first
+            for vector in &self.vectors {
+                self.semantic_analyzer.add_document(vector.content());
+            }
+        }
+        
         // Update all vectors with new strategy
         for vector in &mut self.vectors {
             vector.update_strategy(&self.strategy);
             
-            // If switching to semantic similarity, prepare document vectors
+            // If using semantic similarity, prepare document vectors
             if matches!(self.strategy.similarity_method, SimilarityMethod::Semantic) {
                 vector.prepare_semantic(&self.semantic_analyzer);
             }
@@ -125,6 +140,11 @@ impl TextClassifier {
             }
         }
         true
+    }
+
+    #[cfg(test)]
+    pub fn get_vectors(&self) -> &Vec<TextVector> {
+        &self.vectors
     }
 }
 

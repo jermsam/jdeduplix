@@ -1,7 +1,7 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
 import { defineEmits, defineProps, ref } from 'vue'
-import { type DedupStrategy, SplitStrategy, ComparisonScope } from '../../types/dedup'
+import { type DedupStrategy, SplitStrategy, ComparisonScope, SimilarityMethod } from '../../types/dedup'
 import Text from '../atoms/Text.vue'
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/vue/20/solid'
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
@@ -16,7 +16,7 @@ const emit = defineEmits<{
 }>()
 
 // Track active preset
-const activePreset = ref<string>("Similar Sentences")
+const activePreset = ref<string>("Similar Ideas")
 
 const handleChange = <K extends keyof DedupStrategy>(key: K, value: DedupStrategy[K]) => {
   const newStrategy = {
@@ -36,68 +36,166 @@ const splitStrategies = [
 ]
 
 const comparisonScopes = [
-  { id: ComparisonScope.WithinUnit, name: 'Within Unit' },
-  { id: ComparisonScope.AcrossUnits, name: 'Across Units' },
-  { id: ComparisonScope.Both, name: 'Both' },
+  { id: ComparisonScope.Local, name: 'Local' },
+  { id: ComparisonScope.Global, name: 'Global' },
 ]
 
 // Define the type for presets
 interface Preset {
   name: string;
+  description: string;
   config: Partial<DedupStrategy>;
 }
 
 const presets: Preset[] = [
   {
-    name: "Identical Text",
+    name: "Perfect Match",
+    description: "Find exact copies of text, including spaces and punctuation",
+    config: {
+      case_sensitive: true,
+      ignore_whitespace: false,
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.WholeText,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 1,
+      similarity_threshold: 1.0,
+      similarity_method: SimilarityMethod.Exact
+    }
+  },
+  {
+    name: "Almost Identical",
+    description: "Find text that's nearly the same, ignoring small differences",
     config: {
       case_sensitive: false,
       ignore_whitespace: true,
       ignore_punctuation: false,
       normalize_unicode: true,
       split_strategy: SplitStrategy.WholeText,
-      comparison_scope: ComparisonScope.Both,
+      comparison_scope: ComparisonScope.Global,
       min_length: 3,
-      similarity_threshold: 1.0
+      similarity_threshold: 0.95,
+      similarity_method: SimilarityMethod.Fuzzy
     }
   },
   {
-    name: "Similar Sentences",
+    name: "Similar Ideas",
+    description: "Find sentences that express the same thoughts, even if worded differently",
     config: {
       case_sensitive: false,
       ignore_whitespace: true,
       ignore_punctuation: true,
       normalize_unicode: true,
       split_strategy: SplitStrategy.Sentences,
-      comparison_scope: ComparisonScope.Both,
+      comparison_scope: ComparisonScope.Global,
       min_length: 3,
-      similarity_threshold: 0.8
+      similarity_threshold: 0.8,
+      similarity_method: SimilarityMethod.Fuzzy
     }
   },
   {
-    name: "Similar Content",
-    config: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: true,
-      normalize_unicode: true,
-      split_strategy: SplitStrategy.Words,
-      comparison_scope: ComparisonScope.Both,
-      min_length: 3,
-      similarity_threshold: 0.75
-    }
-  },
-  {
-    name: "Similar Paragraphs",
+    name: "Related Paragraphs",
+    description: "Find paragraphs that cover similar topics or points",
     config: {
       case_sensitive: false,
       ignore_whitespace: true,
       ignore_punctuation: true,
       normalize_unicode: true,
       split_strategy: SplitStrategy.Paragraphs,
-      comparison_scope: ComparisonScope.Both,
+      comparison_scope: ComparisonScope.Global,
       min_length: 10,
-      similarity_threshold: 0.7
+      similarity_threshold: 0.7,
+      similarity_method: SimilarityMethod.Fuzzy
+    }
+  },
+  {
+    name: "Similar Wording",
+    description: "Find text that uses the same words, even in different order",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Words,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 3,
+      similarity_threshold: 0.75,
+      similarity_method: SimilarityMethod.Fuzzy
+    }
+  },
+  {
+    name: "Close Spelling",
+    description: "Find text that's spelled almost the same way, catching typos",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Characters,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 10,
+      similarity_threshold: 0.85,
+      similarity_method: SimilarityMethod.Fuzzy
+    }
+  },
+  {
+    name: "Same Meaning",
+    description: "Find text that means the same thing, even if using different words",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Sentences,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 5,
+      similarity_threshold: 0.7,
+      similarity_method: SimilarityMethod.Semantic
+    }
+  },
+  {
+    name: "Nearby Matches",
+    description: "Find similar text that appears close together in the document",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Sentences,
+      comparison_scope: ComparisonScope.Local,
+      min_length: 3,
+      similarity_threshold: 0.8,
+      similarity_method: SimilarityMethod.Fuzzy
+    }
+  },
+  {
+    name: "Code Duplicates",
+    description: "Find similar code blocks, paying attention to spacing and symbols",
+    config: {
+      case_sensitive: true,
+      ignore_whitespace: true,
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Sentences,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 2,
+      similarity_threshold: 0.9,
+      similarity_method: SimilarityMethod.Fuzzy
+    }
+  },
+  {
+    name: "Deep Meaning",
+    description: "Find text that covers the same topic in detail, even with completely different wording",
+    config: {
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.WholeText,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 10,
+      similarity_threshold: 0.9,
+      similarity_method: SimilarityMethod.Semantic
     }
   }
 ];
@@ -108,9 +206,9 @@ const applyPreset = (preset: Preset) => {
   emit('update:strategy', newStrategy);
 }
 
-// Apply Similar Sentences preset by default
+// Apply Similar Ideas preset by default
 if (props.strategy.similarity_threshold === 1.0) {
-  applyPreset(presets[1]); // Similar Sentences is at index 1
+  applyPreset(presets[2]); // Similar Ideas is at index 2
 }
 
 
@@ -120,21 +218,19 @@ if (props.strategy.similarity_threshold === 1.0) {
   <div class="rounded-lg overflow-hidden bg-[#1A1D23] p-4 space-y-4">
     <!-- Presets -->
     <div class="space-y-2">
-      <Text size="sm" class="text-gray-400">Presets</Text>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="preset in presets"
-          :key="preset.name"
-          @click="applyPreset(preset)"
-          class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-          :class="[
-            activePreset === preset.name
-              ? 'bg-indigo-600 text-white'
-              : 'bg-[#2A2D35] text-gray-300 hover:bg-[#3A3D45]'
-          ]"
-        >
-          {{ preset.name }}
-        </button>
+      <Text size="sm" class="text-gray-400">Choose a Preset</Text>
+      <div class="grid grid-cols-2 gap-4">
+        <div v-for="preset in presets" :key="preset.name" 
+             class="relative rounded-md p-3 cursor-pointer transition-all duration-200"
+             :class="[
+               activePreset === preset.name 
+                 ? 'bg-blue-500/20 ring-2 ring-blue-500'
+                 : 'hover:bg-gray-700/50'
+             ]"
+             @click="applyPreset(preset)">
+          <Text size="sm" weight="medium" class="text-gray-200">{{ preset.name }}</Text>
+          <Text size="xs" class="text-gray-400 mt-1">{{ preset.description }}</Text>
+        </div>
       </div>
     </div>
 

@@ -10,22 +10,15 @@ pub mod core {
 pub mod settings;
 pub mod commands;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use crate::core::classifier::TextClassifier;
 use crate::core::types::DedupStrategy;
 
 type Result<T> = std::result::Result<T, String>;
 
+#[derive(Default, Clone)]
 pub struct AppState {
-    pub classifier: Mutex<TextClassifier>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            classifier: Mutex::new(TextClassifier::new(DedupStrategy::default())),
-        }
-    }
+    pub classifier: Arc<Mutex<TextClassifier>>,
 }
 
 /// Initialize and run the Tauri application
@@ -33,7 +26,9 @@ impl Default for AppState {
 pub fn run() {
     let context = tauri::generate_context!();
     tauri::Builder::default()
-        .manage(AppState::default())
+        .manage(AppState {
+            classifier: Arc::new(Mutex::new(TextClassifier::new(DedupStrategy::default())))
+        })
         .invoke_handler(tauri::generate_handler![
             commands::add_text,
             commands::find_duplicates,
