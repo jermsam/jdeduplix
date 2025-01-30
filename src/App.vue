@@ -1,3 +1,126 @@
+<template>
+  <div class="min-h-screen theme-base" :class="isDark ? 'dark' : ''">
+    <nav class="sticky top-0 z-50 backdrop-blur-md border-b theme-surface">
+      <div class="container mx-auto px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-8">
+            <div>
+              <h1 class="text-lg font-medium brand-gradient">Jdeduplix</h1>
+              <p class="text-[12px] mt-0.5 text-theme-secondary">Smart Deduplication System</p>
+            </div>
+            <div class="hidden sm:flex items-center gap-1">
+              <button class="px-3 py-1.5 font-medium rounded-lg transition-all duration-300" :class="{
+                'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30': isDark,
+                'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5': !isDark
+              }">Text</button>
+              <button class="px-3 py-1.5 font-medium rounded-lg transition-all duration-300" :class="{
+                'text-[#8C8C8C] hover:text-[#CCCCCC] hover:bg-[#313131]': isDark,
+                'text-[#6E6E6E] hover:text-[#1F1F1F] hover:bg-[#F3F3F3]': !isDark
+              }" disabled>JSON</button>
+              <button class="px-3 py-1.5 font-medium rounded-lg transition-all duration-300" :class="{
+                'text-[#8C8C8C] hover:text-[#CCCCCC] hover:bg-[#313131]': isDark,
+                'text-[#6E6E6E] hover:text-[#1F1F1F] hover:bg-[#F3F3F3]': !isDark
+              }" disabled>Images</button>
+              <button class="px-3 py-1.5 font-medium rounded-lg transition-all duration-300" :class="{
+                'text-[#8C8C8C] hover:text-[#CCCCCC] hover:bg-[#313131]': isDark,
+                'text-[#6E6E6E] hover:text-[#1F1F1F] hover:bg-[#F3F3F3]': !isDark
+              }" disabled>Binary</button>
+            </div>
+          </div>
+          <button 
+            @click="toggleDarkMode"
+            class="button-secondary"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="isDark" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6">
+      <div class="grid lg:grid-cols-3 gap-4">
+        <!-- Editor Section -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="card">
+            <div class="card-header">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                  </div>
+                  <span class="text-sm text-theme-secondary">Editor</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button 
+                    @click="addTestText"
+                    class="button-secondary"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                  <button 
+                    @click="() => {
+                      const text = editor?.getText();
+                      if (text) findDuplicates(text);
+                    }"
+                    class="button-secondary"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <button 
+                    @click="clearDuplicates" 
+                    class="button-secondary"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="p-4">
+              <EditorContent 
+                :editor="editor" 
+                class="max-w-none focus:outline-none"
+                :class="{
+                  '[&_p]:text-app-light-text-primary': isDark,
+                  '[&_p]:text-app-dark-text-primary': !isDark
+                }"
+              />
+            </div>
+          </div>
+
+          <!-- Results -->
+          <DuplicateResults
+            v-if="duplicates.length > 0"
+            :duplicates="duplicates"
+            :isDark="isDark"
+            @delete="handleDelete"
+            class="transition-all duration-500 ease-in-out shadow-app-dark"
+          />
+        </div>
+
+        <!-- Settings -->
+        <div class="space-y-4 lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">
+          <DedupSettings 
+            v-model:strategy="strategy"
+            :isDark="isDark"
+            class="transition-all duration-500 ease-in-out shadow-app-dark"
+          />
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
@@ -15,7 +138,7 @@ import Button from './components/atoms/Button.vue'
 import { useDeduplication } from './composables/useDeduplication'
 
 // Theme handling
-const isDark = ref(true) // Default to dark theme
+const isDark = ref(false) // Default to light theme
 const theme = ref(isDark.value ? 'dark' : 'light')
 
 // Initialize deduplication
@@ -40,18 +163,24 @@ watch(isDark, (newValue) => {
   document.documentElement.classList.toggle('dark', newValue)
 })
 
-// Editor setup
+// Toggle dark mode
+function toggleDarkMode() {
+  isDark.value = !isDark.value;
+  document.documentElement.classList.toggle('dark', isDark.value);
+}
+
+// Initialize editor
 const editor = useEditor({
   extensions: [
     StarterKit,
     Placeholder.configure({
-      placeholder: 'Enter your text here...'
+      placeholder: 'Paste your text here...'
     })
   ],
   content: '',
   editorProps: {
     attributes: {
-      class: 'prose prose-sm prose-invert focus:outline-none max-w-none'
+      class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none w-full max-w-none'
     }
   }
 })
@@ -71,7 +200,7 @@ const handleClear = () => {
 }
 
 // Add test duplicate text
-const addTestDuplicate = () => {
+const addTestText = () => {
   if (editor.value) {
     const text = `Project Meeting Notes
 
@@ -94,132 +223,38 @@ Contact Sarah@company.com for technical questions. You can reach out to sarah@co
 }
 </script>
 
-<template>
-  <div class="min-h-screen bg-gradient-to-b from-[#141517] to-[#1A1D23] text-gray-100">
-    <nav class="border-b border-gray-800">
-      <div class="container mx-auto px-4 py-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-8">
-            <div>
-              <h1 class="text-lg font-medium bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">Jdeduplix</h1>
-              <p class="text-xs text-gray-400 mt-0.5">Smart Deduplication System</p>
-            </div>
-            <div class="hidden sm:flex items-center gap-1">
-              <button class="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-500 bg-opacity-10 text-indigo-400">Text</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:bg-[#1E2128] transition-colors" disabled>JSON</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:bg-[#1E2128] transition-colors" disabled>Images</button>
-              <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:bg-[#1E2128] transition-colors" disabled>Binary</button>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              @click="handleSubmit"
-              :disabled="!editor?.getText()"
-              class="px-4 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/50 flex items-center gap-2"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Find Duplicates
-            </button>
-            <a href="https://github.com/jermsam/jdeduplix" target="_blank" class="p-1.5 text-gray-400 hover:text-gray-300 transition-colors rounded-lg hover:bg-[#1E2128]">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-    <div class="container mx-auto px-4 py-6 max-w-7xl">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Editor Section -->
-        <div class="lg:col-span-2 space-y-4">
-          <div class="bg-[#1A1D23] rounded-lg overflow-hidden ring-1 ring-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-2 bg-[#1E2128] border-b border-gray-800">
-              <div class="flex items-center gap-2">
-                <div class="flex items-center gap-1.5">
-                  <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                  <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                  <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                </div>
-                <div class="text-xs font-medium text-gray-300 ml-2">Editor</div>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  @click="handleClear"
-                  class="px-2 py-1 text-xs text-gray-400 hover:text-gray-300 transition-colors group flex items-center gap-1"
-                >
-                  <svg class="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Clear
-                </button>
-                <button
-                  @click="addTestDuplicate"
-                  class="px-2 py-1 text-xs text-gray-400 hover:text-gray-300 transition-colors group flex items-center gap-1"
-                >
-                  <svg class="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Add Test Text
-                </button>
-              </div>
-            </div>
-            <div class="p-3">
-              <EditorContent 
-                :editor="editor" 
-                class="prose prose-sm prose-invert max-w-none"
-              />
-            </div>
-          </div>
-
-          <!-- Results -->
-          <DuplicateResults
-            :duplicates="duplicates"
-            @delete="handleDelete"
-          />
-        </div>
-
-        <!-- Settings -->
-        <div class="space-y-4 lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">
-          <DedupSettings
-            v-model:strategy="strategy"
-            :isDark="isDark"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
-<style>
+<style lang="postcss">
 .ProseMirror {
-  @apply min-h-[calc(100vh-20rem)] lg:min-h-[30rem] text-xs text-gray-300 font-mono;
+  @apply min-h-[200px] font-mono;
+}
+
+.ProseMirror p {
+  @apply my-0;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400 float-left h-0 pointer-events-none;
+  content: attr(data-placeholder);
+}
+
+.dark .ProseMirror p.is-editor-empty:first-child::before {
   @apply text-gray-500;
-  content: "Paste your text here...";
-  float: left;
-  pointer-events: none;
-  height: 0;
 }
 
-.ProseMirror:focus {
-  @apply outline-none;
-}
-
-/* Scrollbar Styles */
+/* Custom scrollbar for Webkit browsers */
 ::-webkit-scrollbar {
-  @apply w-1.5;
+  @apply w-2;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-[#1A1D23];
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded-full hover:bg-gray-600 transition-colors;
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors duration-200;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 hover:bg-gray-600;
 }
 </style>

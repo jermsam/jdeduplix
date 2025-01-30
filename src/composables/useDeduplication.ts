@@ -14,16 +14,16 @@ export function useDeduplication() {
       try {
         isUpdatingStrategy.value = true
         await invoke('update_strategy', {
-          case_sensitive: newStrategy.case_sensitive,
-          ignore_whitespace: newStrategy.ignore_whitespace,
-          ignore_punctuation: newStrategy.ignore_punctuation,
-          normalize_unicode: newStrategy.normalize_unicode,
-          split_strategy: newStrategy.split_strategy,
-          comparison_scope: newStrategy.comparison_scope,
-          min_length: newStrategy.min_length,
-          similarity_threshold: newStrategy.similarity_threshold,
-          similarity_method: newStrategy.similarity_method,
-          use_parallel: newStrategy.use_parallel,
+          caseSensitive: newStrategy.case_sensitive,
+          ignoreWhitespace: newStrategy.ignore_whitespace,
+          ignorePunctuation: newStrategy.ignore_punctuation,
+          normalizeUnicode: newStrategy.normalize_unicode,
+          splitStrategy: newStrategy.split_strategy,
+          comparisonScope: newStrategy.comparison_scope,
+          minLength: newStrategy.min_length,
+          similarityThreshold: newStrategy.similarity_threshold,
+          similarityMethod: newStrategy.similarity_method,
+          useParallel: newStrategy.use_parallel,
         })
         // If we're using semantic similarity, wait a bit for processing
         if (newStrategy.similarity_method === 'Semantic') {
@@ -55,7 +55,7 @@ export function useDeduplication() {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       
-      // First add the text
+      // First add the text - use named parameter
       const idx = await invoke<number>('add_text', { text })
       texts.value.push(text)
       

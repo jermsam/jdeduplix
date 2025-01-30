@@ -5,14 +5,16 @@ import { type DedupStrategy, SplitStrategy, ComparisonScope, SimilarityMethod } 
 import Text from '../atoms/Text.vue'
 import Switch from '../atoms/Switch.vue'
 
-const props = defineProps<{
+interface Props {
   strategy: DedupStrategy
   isDark?: boolean
-}>()
+}
 
-const emit = defineEmits<{
-  'update:strategy': [strategy: DedupStrategy]
-}>()
+defineEmits<{
+  (e: 'update:strategy', value: Props['strategy']): void;
+}>();
+
+const props = defineProps<Props>()
 
 // Track active preset
 const activePreset = ref<string>("Similar Ideas")
@@ -230,138 +232,131 @@ const sliderStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="bg-[#1A1D23] rounded-lg overflow-hidden font-sans">
-    <!-- Main Settings -->
-    <div class="p-3">
+  <div class="card">
+    <div class="card-header">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h3 class="font-medium text-sm text-theme-primary">
+            Deduplication Settings
+          </h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 space-y-6">
       <!-- Presets -->
-      <div class="mb-3">
-        <h3 class="text-xs font-medium text-gray-400 mb-2">Choose a Preset</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div class="space-y-4">
+        <div>
+          <h4 class="text-sm font-medium text-theme-primary">Presets</h4>
+          <p class="text-xs text-theme-secondary mt-0.5">
+            Select a preset to quickly adjust the deduplication settings
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
           <button
             v-for="preset in presets"
             :key="preset.name"
             @click="applyPreset(preset)"
+            class="preset-button"
             :class="[
-              'p-2 rounded-lg text-left hover:bg-[#23262E] transition-colors',
-              activePreset === preset.name ? 'bg-[#23262E] ring-1 ring-indigo-500' : 'bg-[#1E2128]'
+              Math.abs(props.strategy.similarity_threshold - preset.config.similarity_threshold) < 0.05
+                ? 'preset-button-active'
+                : 'preset-button-inactive'
             ]"
           >
-            <div class="text-xs font-medium leading-snug text-gray-200">{{ preset.name }}</div>
-            <div class="text-xs leading-relaxed text-gray-400 mt-0.5">{{ preset.description }}</div>
+            <div class="font-medium">{{ preset.name }}</div>
+            <div class="text-xs mt-1 opacity-90">{{ preset.description }}</div>
           </button>
         </div>
       </div>
 
-      <!-- Similarity -->
-      <div class="mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-xs font-medium text-gray-300">Similarity</div>
-          <div class="text-xs font-medium text-gray-400">{{ Math.round(props.strategy.similarity_threshold * 100) }}%</div>
+      <!-- Similarity Slider -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-medium text-theme-primary">Similarity Threshold</h4>
+            <p class="text-xs text-theme-secondary mt-0.5">
+              Adjust how similar text needs to be to be considered a duplicate
+            </p>
+          </div>
+          <span class="text-sm font-medium text-theme-primary">
+            {{ Math.round(props.strategy.similarity_threshold * 100) }}%
+          </span>
         </div>
+        
         <input
           type="range"
           min="0"
           max="1"
-          step="0.05"
-          :value="props.strategy.similarity_threshold"
-          :style="sliderStyle"
-          class="w-full"
-          @input="(e) => handleChange('similarity_threshold', parseFloat((e.target as HTMLInputElement).value))"
+          step="0.01"
+          v-model="props.strategy.similarity_threshold"
+          @input="$emit('update:strategy', { ...props.strategy })"
+          class="w-full h-2 bg-theme-bg-elevated-light dark:bg-theme-bg-elevated-dark rounded-full appearance-none cursor-pointer"
         />
       </div>
-    </div>
 
-    <!-- Advanced Settings Toggle -->
-    <button 
-      @click="showAdvanced = !showAdvanced"
-      class="w-full p-2 border-t border-gray-800 flex items-center justify-between hover:bg-[#1E2128] transition-colors"
-    >
-      <span class="text-xs font-medium text-gray-300">Advanced Settings</span>
-      <div 
-        class="w-4 h-4 rounded-full bg-[#1E2128] flex items-center justify-center transition-transform"
-        :class="{ 'rotate-180': showAdvanced }"
+      <!-- Advanced Settings Toggle -->
+      <button 
+        @click="showAdvanced = !showAdvanced"
+        class="w-full flex items-center justify-between text-xs font-medium px-3 py-2 rounded-lg transition-all duration-300"
+        :class="{
+          'bg-gray-700/30 text-gray-400 hover:text-gray-300 hover:bg-gray-700/40': props.isDark,
+          'bg-gray-100 text-gray-600 hover:bg-gray-200': !props.isDark
+        }"
       >
-        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        <span>Advanced Settings</span>
+        <svg class="w-4 h-4 transition-transform duration-300" :class="{ 'rotate-180': showAdvanced }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
-    </button>
-
-    <!-- Advanced Settings Content -->
-    <div v-if="showAdvanced" class="border-t border-gray-800">
-      <div class="p-3 space-y-3">
-        <!-- Toggles -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div 
-            v-for="toggle in toggles" 
-            :key="toggle.key"
-            class="flex items-center justify-between p-2 rounded-lg bg-[#1E2128]"
-          >
-            <span class="text-xs font-medium text-gray-300">{{ toggle.label }}</span>
-            <Switch
-              :model-value="props.strategy[toggle.key] as boolean"
-              @update:model-value="(value) => handleChange(toggle.key, value)"
-            />
-          </div>
-        </div>
-
+      </button>
+      <div v-if="showAdvanced" class="pt-2 space-y-4">
         <!-- Split Strategy -->
-        <div>
-          <div class="text-xs font-medium text-gray-300 mb-2">Split Strategy</div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div class="space-y-4">
+          <h4 class="text-sm font-medium text-theme-primary">Split Strategy</h4>
+          <p class="text-xs text-theme-secondary mt-0.5">
+            Select how to split the text into smaller parts for comparison
+          </p>
+          <div class="grid grid-cols-3 gap-1">
             <button
               v-for="strategy in splitStrategies"
               :key="strategy.id"
               @click="handleChange('split_strategy', strategy.id)"
-              :class="[
-                'p-2 rounded-lg text-xs transition-colors text-center',
-                props.strategy.split_strategy === strategy.id
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
-              ]"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300"
+              :class="{
+                'bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-400/30': props.isDark && props.strategy.split_strategy === strategy.id,
+                'bg-gray-700/30 text-gray-400 hover:text-gray-300 hover:bg-gray-700/40': props.isDark && props.strategy.split_strategy !== strategy.id,
+                'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25': !props.isDark && props.strategy.split_strategy === strategy.id,
+                'bg-gray-100 text-gray-600 hover:bg-gray-200': !props.isDark && props.strategy.split_strategy !== strategy.id
+              }"
             >
               {{ strategy.name }}
             </button>
           </div>
         </div>
 
-        <!-- Method -->
-        <div>
-          <div class="text-xs font-medium text-gray-300 mb-2">Method</div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <button
-              v-for="method in similarityMethods"
-              :key="method.id"
-              @click="handleChange('similarity_method', method.id)"
-              :class="[
-                'p-2 rounded-lg text-xs transition-colors text-center',
-                props.strategy.similarity_method === method.id
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
-              ]"
-            >
-              {{ method.name }}
-            </button>
+        <!-- Toggles -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between py-1">
+            <span class="text-xs" :class="{
+              'text-gray-400': props.isDark,
+              'text-gray-600': !props.isDark
+            }">Case Sensitive</span>
+            <Switch v-model="props.strategy.case_sensitive" />
           </div>
-        </div>
-
-        <!-- Scope -->
-        <div>
-          <div class="text-xs font-medium text-gray-300 mb-2">Scope</div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <button
-              v-for="scope in comparisonScopes"
-              :key="scope.id"
-              @click="handleChange('comparison_scope', scope.id)"
-              :class="[
-                'p-2 rounded-lg text-xs transition-colors text-center',
-                props.strategy.comparison_scope === scope.id
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-[#1E2128] text-gray-300 hover:bg-[#23262E]'
-              ]"
-            >
-              {{ scope.name }}
-            </button>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-xs" :class="{
+              'text-gray-400': props.isDark,
+              'text-gray-600': !props.isDark
+            }">Ignore Whitespace</span>
+            <Switch v-model="props.strategy.ignore_whitespace" />
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-xs" :class="{
+              'text-gray-400': props.isDark,
+              'text-gray-600': !props.isDark
+            }">Ignore Punctuation</span>
+            <Switch v-model="props.strategy.ignore_punctuation" />
           </div>
         </div>
       </div>
@@ -373,36 +368,63 @@ const sliderStyle = computed(() => ({
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
-  height: 6px;
-  background: #1E2128;
-  border-radius: 4px;
+  height: 4px;
+  border-radius: 2px;
   outline: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  background: rgb(99 102 241); /* indigo-500 */
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid rgb(129 140 248); /* indigo-400 */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease-in-out;
 }
 
-input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: rgb(99 102 241);
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid rgb(129 140 248);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.slider-dark {
+  background: #282B33;
 }
 
-/* Color for the filled part of the slider */
-input[type="range"] {
-  background: linear-gradient(to right, rgb(99 102 241) 0%, rgb(99 102 241) calc(var(--value-percent) * 100%), #1E2128 calc(var(--value-percent) * 100%), #1E2128 100%);
+.slider-dark::-webkit-slider-thumb {
+  background: #6366F1;
+  border: 2px solid #1E2128;
+}
+
+.slider-dark::-webkit-slider-thumb:hover {
+  background: #818CF8;
+}
+
+.slider-light {
+  background: #E5E7EB;
+}
+
+.slider-light::-webkit-slider-thumb {
+  background: #6366F1;
+  border: 2px solid white;
+}
+
+.slider-light::-webkit-slider-thumb:hover {
+  background: #818CF8;
+}
+
+.preset-button {
+  @apply py-3 px-4 rounded-lg text-left transition-all duration-200 hover:shadow-md;
+}
+
+.preset-button-active {
+  @apply bg-brand-primary text-white shadow-sm;
+}
+
+.preset-button-inactive {
+  @apply bg-theme-bg-surface-light dark:bg-theme-bg-surface-dark text-theme-text-primary-light dark:text-theme-text-primary-dark hover:bg-theme-bg-elevated-light dark:hover:bg-theme-bg-elevated-dark;
+}
+
+.card {
+  @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark rounded-xl border border-theme-border-light dark:border-theme-border-dark shadow-surface-light dark:shadow-surface-dark;
+}
+
+.card-header {
+  @apply p-4 border-b border-theme-border-light dark:border-theme-border-dark;
 }
 </style>

@@ -1,24 +1,32 @@
 <script setup lang="ts">
-import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
+import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue';
 
 interface Props {
-  modelValue: boolean
-  title: string
+  open: boolean;
+  title?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-defineProps<Props>()
-const emit = defineEmits(['update:modelValue'])
+defineEmits<{
+  (e: 'close'): void;
+}>();
+
+const props = withDefaults(defineProps<Props>(), {
+  open: false,
+  title: '',
+  size: 'md'
+});
+
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg'
+};
 </script>
 
 <template>
-  <TransitionRoot appear :show="modelValue" as="template">
-    <Dialog 
-      as="div" 
-      class="relative z-50" 
-      :model-value="modelValue"
-      :title="title"
-      @update:model-value="emit('update:modelValue', $event)"
-    >
+  <TransitionRoot appear :show="open" as="template">
+    <Dialog as="div" class="relative z-50" @close="$emit('close')">
       <TransitionChild
         as="template"
         enter="duration-300 ease-out"
@@ -32,7 +40,7 @@ const emit = defineEmits(['update:modelValue'])
       </TransitionChild>
 
       <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4">
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
           <TransitionChild
             as="template"
             enter="duration-300 ease-out"
@@ -42,17 +50,21 @@ const emit = defineEmits(['update:modelValue'])
             leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95"
           >
-            <DialogPanel class="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
-              <DialogTitle
-                as="h3"
-                class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100"
-              >
+            <DialogPanel 
+              :class="[
+                sizeClasses[size],
+                'w-full transform overflow-hidden rounded-lg theme-surface p-6 text-left align-middle shadow-xl transition-all'
+              ]"
+            >
+              <DialogTitle v-if="title" class="text-lg font-medium leading-6 text-theme-primary mb-4">
                 {{ title }}
               </DialogTitle>
-              <div class="mt-4">
+
+              <div class="mt-2">
                 <slot />
               </div>
-              <div class="mt-4">
+
+              <div v-if="$slots.footer" class="mt-6 flex justify-end gap-3">
                 <slot name="footer" />
               </div>
             </DialogPanel>

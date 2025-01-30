@@ -2,23 +2,31 @@
 import Text from '../atoms/Text.vue'
 
 interface Props {
-  label?: string
-  error?: string
+  label?: string;
+  error?: string;
+  required?: boolean;
+  helpText?: string;
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  label: '',
+  error: '',
+  required: false,
+  helpText: ''
+});
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="space-y-1">
     <Text
       v-if="label"
-      as="span"
+      as="label"
       variant="label"
       size="sm"
-      class="mb-1 block cursor-pointer"
+      class="block cursor-pointer text-theme-primary"
     >
       {{ label }}
+      <span v-if="required" class="text-red-500">*</span>
     </Text>
     
     <slot />
@@ -27,9 +35,18 @@ defineProps<Props>()
       v-if="error"
       variant="error"
       size="sm"
-      class="mt-1"
+      class="text-red-500"
     >
       {{ error }}
+    </Text>
+    
+    <Text
+      v-else-if="helpText"
+      variant="help"
+      size="sm"
+      class="text-theme-muted"
+    >
+      {{ helpText }}
     </Text>
   </div>
 </template>
