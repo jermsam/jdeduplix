@@ -232,7 +232,7 @@ const sliderStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="card">
+  <div class="card max-w-full overflow-hidden">
     <div class="card-header">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">

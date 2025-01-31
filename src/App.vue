@@ -104,7 +104,7 @@
             :duplicates="duplicates"
             :isDark="isDark"
             @delete="handleDelete"
-            class="transition-all duration-500 ease-in-out shadow-app-dark"
+            class="shadow-app-dark"
           />
         </div>
 
@@ -229,6 +229,11 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 /* Improved selection styling */
@@ -275,6 +280,7 @@ html {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: transform;
+  overflow-x: hidden;
 }
 
 /* Ultra-premium card hover effect */

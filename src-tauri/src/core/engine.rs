@@ -1,6 +1,6 @@
 // Main deduplication engine
 use super::classifier::TextClassifier;
-use super::vector::DedupStrategy;
+use crate::core::types::DedupStrategy;
 
 pub struct DeduplicationEngine {
     classifier: TextClassifier,
@@ -24,6 +24,7 @@ impl DeduplicationEngine {
         println!("Engine: Processing text: {}", content);
         // Clear existing content before processing new text
         self.classifier.clear();
+        // Return the index where the text was added
         self.classifier.add_text(content)
     }
 
@@ -32,14 +33,15 @@ impl DeduplicationEngine {
         dupes.iter()
             .map(|group| {
                 group.iter()
-                    .map(|&idx| self.classifier.get_text_content(idx))
+                    .filter_map(|&idx| self.classifier.get_text(idx))
+                    .map(|s| s.as_str())
                     .collect()
             })
             .collect()
     }
 
-    pub fn get_strategy(&self) -> DedupStrategy {
-        self.classifier.strategy.clone()
+    pub fn get_strategy(&self) -> &DedupStrategy {
+        self.classifier.get_strategy()
     }
 
     pub fn clear_duplicates(&mut self) {

@@ -49,6 +49,13 @@ dashmap = "5.5.3"                                # Thread-safe concurrent HashMa
 lru = "0.12.1"                                   # LRU cache
 memmap2 = "0.9.0"                                # Memory mapping for large files
 
+# State Management
+state_machine_future = "0.2.0"  # Async state machine for processing
+statechart = "0.0.8"           # System-level state management
+tokio = { version = "1.0", features = ["full"] } # Async runtime
+once_cell = "1.19.0"           # Lazy statics
+futures = "0.3"                # Future traits and utilities
+
 # Utilities
 uuid = { version = "1.6.1", features = ["v4"] }  # Unique identifiers
 

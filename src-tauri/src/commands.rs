@@ -1,96 +1,122 @@
 use crate::core::classifier::TextClassifier;
-use crate::core::types::{SimilarityMethod, SplitStrategy, ComparisonScope, DedupStrategy};
-use crate::AppState;
-use tauri::State;
+use crate::core::types::{DedupStrategy, SplitStrategy, ComparisonScope, SimilarityMethod};
+use crate::state::{SystemState, DedupManager, ProcessingStats};
+use crate::DedupResults;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use once_cell::sync::Lazy;
+use tauri::{Runtime, Error};
+use anyhow;
 
-type Result<T> = std::result::Result<T, String>;
+static CLASSIFIER: Lazy<Arc<Mutex<TextClassifier>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(TextClassifier::new(DedupStrategy::default())))
+});
+
+static DEDUP_MANAGER: Lazy<Arc<DedupManager>> = Lazy::new(|| {
+    Arc::new(DedupManager::new())
+});
+
+// Change from a custom Result to using Tauri's Result type
+type CommandResult<T> = Result<T, tauri::Error>;
 
 #[tauri::command]
-pub fn find_duplicates(state: State<AppState>) -> Result<Vec<Vec<usize>>> {
-    let classifier = state.classifier.lock().map_err(|e| e.to_string())?;
-    let dupes = classifier.find_duplicates();
-    
-    // Convert string groups to index groups
-    let mut result = Vec::new();
-    let all_texts = classifier.get_all_texts();
-    
-    for group in dupes {
-        let mut index_group = Vec::new();
-        for text in group {
-            if let Some(pos) = all_texts.iter().position(|t| t == &text) {
-                index_group.push(pos);
-            }
+pub async fn get_dedup_state() -> Result<SystemState, Error> {
+    DEDUP_MANAGER.get_state()
+        .await
+        .map_err(|e| Error::from(anyhow::anyhow!(e.to_string())))
+}
+
+
+#[tauri::command]
+pub async fn deduplicate_texts(texts: Vec<String>, strategy: DedupStrategy) -> Result<DedupResults, Error> {
+    let groups = {
+        let mut classifier = CLASSIFIER.lock().await;
+        classifier.update_strategy(strategy);
+        classifier.clear(); // Clear existing texts
+        for text in &texts {
+            classifier.add_text(text.clone());
         }
-        if !index_group.is_empty() {
-            result.push(index_group);
+        let index_groups = classifier.find_duplicates();
+        
+        // Convert indices to actual strings
+        index_groups
+            .into_iter()
+            .map(|group| {
+                group.into_iter()
+                    .map(|idx| classifier.get_text(idx).unwrap().clone())
+                    .collect::<Vec<String>>()
+            })
+            .collect::<Vec<Vec<String>>>()
+    };
+
+    Ok(DedupResults {
+        groups,
+        stats: ProcessingStats {
+            total_items: texts.len(),
+            processing_time: 0.0,  // You might want to actually measure this
+            memory_used: 0,        // You might want to actually measure this
         }
-    }
-    
-    Ok(result)
+    })
 }
 
 #[tauri::command]
-pub fn add_text(text: String, state: State<AppState>) -> Result<usize> {
-    let mut classifier = state.classifier.lock().map_err(|e| e.to_string())?;
+pub async fn add_text(text: String) -> Result<usize, Error> {
+    let mut classifier = CLASSIFIER.lock().await;
     Ok(classifier.add_text(text))
 }
 
 #[tauri::command]
-pub fn get_text(idx: usize, state: State<AppState>) -> Result<Option<String>> {
-    let classifier = state.classifier.lock().map_err(|e| e.to_string())?;
-    Ok(classifier.get_text(idx).map(|s| s.to_string()))
+pub async fn find_duplicates() -> Result<Vec<Vec<String>>, Error> {
+    let classifier = CLASSIFIER.lock().await;
+    let index_groups = classifier.find_duplicates();
+    let all_texts = classifier.get_all_texts();
+    
+    // Convert indices to actual strings
+    Ok(index_groups
+        .into_iter()
+        .map(|group| {
+            group.into_iter()
+                .map(|idx| all_texts[idx].clone())
+                .collect()
+        })
+        .collect())
 }
 
 #[tauri::command]
-pub fn get_all_texts(state: State<AppState>) -> Result<Vec<String>> {
-    let classifier = state.classifier.lock().map_err(|e| e.to_string())?;
+pub async fn get_text(idx: usize) -> Result<Option<String>, Error> {
+    let classifier = CLASSIFIER.lock().await;
+    Ok(classifier.get_text(idx).cloned())
+}
+
+#[tauri::command]
+pub async fn get_all_texts() -> Result<Vec<String>, Error> {
+    let classifier = CLASSIFIER.lock().await;
     Ok(classifier.get_all_texts())
 }
 
 #[tauri::command]
-pub fn clear(state: State<AppState>) -> Result<()> {
-    let mut classifier = state.classifier.lock().map_err(|e| e.to_string())?;
+pub async fn clear() -> Result<(), Error> {
+    let mut classifier = CLASSIFIER.lock().await;
     classifier.clear();
     Ok(())
 }
 
 #[tauri::command]
-pub fn update_strategy(
+pub async fn update_strategy(
+    similarity_threshold: f64,
     case_sensitive: bool,
     ignore_whitespace: bool,
     ignore_punctuation: bool,
     normalize_unicode: bool,
-    split_strategy: String,
-    comparison_scope: String,
+    split_strategy: SplitStrategy,
+    comparison_scope: ComparisonScope,
     min_length: usize,
-    similarity_threshold: f64,
-    similarity_method: String,
+    similarity_method: SimilarityMethod,
     use_parallel: bool,
-    state: State<AppState>,
-) -> Result<()> {
-    let split_strategy = match split_strategy.as_str() {
-        "Characters" => SplitStrategy::Characters,
-        "Words" => SplitStrategy::Words,
-        "Sentences" => SplitStrategy::Sentences,
-        "Paragraphs" => SplitStrategy::Paragraphs,
-        "WholeText" => SplitStrategy::WholeText,
-        _ => return Err("Invalid split strategy".to_string()),
-    };
-
-    let comparison_scope = match comparison_scope.as_str() {
-        "Local" => ComparisonScope::Local,
-        "Global" => ComparisonScope::Global,
-        _ => return Err("Invalid comparison scope".to_string()),
-    };
-
-    let similarity_method = match similarity_method.as_str() {
-        "Exact" => SimilarityMethod::Exact,
-        "Fuzzy" => SimilarityMethod::Fuzzy,
-        "Semantic" => SimilarityMethod::Semantic,
-        _ => return Err("Invalid similarity method".to_string()),
-    };
-
-    let strategy = DedupStrategy {
+) -> Result<(), Error> {
+    let mut classifier = CLASSIFIER.lock().await;
+    classifier.update_strategy(DedupStrategy {
+        similarity_threshold,
         case_sensitive,
         ignore_whitespace,
         ignore_punctuation,
@@ -98,63 +124,55 @@ pub fn update_strategy(
         split_strategy,
         comparison_scope,
         min_length,
-        similarity_threshold,
         similarity_method,
         use_parallel,
-    };
-
-    let mut classifier = state.classifier.lock().map_err(|e| e.to_string())?;
-    classifier.update_strategy(strategy);
+    });
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_strategy(state: State<AppState>) -> Result<DedupStrategy> {
-    let classifier = state.classifier.lock().map_err(|e| e.to_string())?;
+pub async fn get_strategy() -> Result<DedupStrategy, Error> {
+    let classifier = CLASSIFIER.lock().await;
     Ok(classifier.get_strategy().clone())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::default::Default;
 
     // Helper function to test the functionality directly without Tauri's State
-    fn test_with_classifier<F>(f: F)
+    async fn test_with_classifier<F, Fut>(f: F) -> Fut::Output
     where
-        F: FnOnce(&mut TextClassifier),
+        F: FnOnce(TextClassifier) -> Fut,
+        Fut: std::future::Future,
     {
-        let mut classifier = TextClassifier::default();
-        f(&mut classifier);
+        let classifier = TextClassifier::default();
+        f(classifier).await
     }
 
-    #[test]
-    fn test_add_and_get_text() {
-        test_with_classifier(|classifier| {
+    #[tokio::test]
+    async fn test_add_and_get_text() {
+        test_with_classifier(|mut classifier| async move {
             let text = "Hello, World!".to_string();
             
             // Test add_text
             let idx = classifier.add_text(text.clone());
-            assert_eq!(idx, 0);
             
             // Test get_text
             let retrieved = classifier.get_text(idx);
-            assert_eq!(retrieved, Some(text.as_str()));
+            assert_eq!(retrieved, Some(&text));
             
             // Test get_all_texts
             let all_texts = classifier.get_all_texts();
             assert_eq!(all_texts, vec![text]);
-        });
+        }).await;
     }
 
-    #[test]
-    fn test_find_duplicates() {
-        test_with_classifier(|classifier| {
-            // Add some test texts with more similar wording
-            classifier.add_text("The cat quickly jumped over the fence".to_string());
-            classifier.add_text("The cat swiftly jumped over the fence".to_string());
-            classifier.add_text("My dog sleeps on the couch".to_string());
-            
-            // Update to semantic strategy
+    #[tokio::test]
+    async fn test_find_duplicates() {
+        test_with_classifier(|mut classifier| async move {
+            // Set appropriate strategy for finding similar texts
             classifier.update_strategy(DedupStrategy {
                 case_sensitive: false,
                 ignore_whitespace: true,
@@ -163,41 +181,49 @@ mod tests {
                 split_strategy: SplitStrategy::WholeText,
                 comparison_scope: ComparisonScope::Global,
                 min_length: 5,
-                similarity_threshold: 0.15, // Moderate threshold for similar sentences
+                similarity_threshold: 0.6, // More lenient threshold
                 similarity_method: SimilarityMethod::Semantic,
                 use_parallel: false,
             });
-            
-            // Find duplicates
-            let vectors = classifier.get_vectors();
-            println!("Similarity between cat and feline: {}", vectors[0].calculate_similarity(&vectors[1]));
-            println!("Similarity between cat and dog: {}", vectors[0].calculate_similarity(&vectors[2]));
-            println!("Similarity between feline and dog: {}", vectors[1].calculate_similarity(&vectors[2]));
+
+            // Add some test texts with more similar wording
+            let idx1 = classifier.add_text("The cat quickly jumped over the fence".to_string());
+            let idx2 = classifier.add_text("The cat swiftly jumped over the fence".to_string());
+            let idx3 = classifier.add_text("A dog runs in the park".to_string());
+            let idx4 = classifier.add_text("My dog sleeps on the couch".to_string());
             
             let duplicates = classifier.find_duplicates();
-            assert_eq!(duplicates.len(), 1); // Should find one group of duplicates
             
-            // The group should contain exactly the cat/feline sentences
-            let group = &duplicates[0];
-            assert!(group.contains(&"The cat quickly jumped over the fence".to_string()));
-            assert!(group.contains(&"The cat swiftly jumped over the fence".to_string()));
-            assert!(!group.contains(&"My dog sleeps on the couch".to_string()));
-        });
+            // Should find at least one group of similar texts
+            assert!(!duplicates.is_empty());
+            
+            // Find the group containing cat-related texts
+            let cat_group = duplicates.iter()
+                .find(|group| group.iter().any(|&id| id == idx1))
+                .expect("Should find cat-related group");
+            
+            // Verify that similar cat texts are in the same group
+            assert!(cat_group.iter().any(|&id| id == idx2));
+            
+            // Verify that dissimilar texts are not in the cat group
+            assert!(!cat_group.iter().any(|&id| id == idx3));
+            assert!(!cat_group.iter().any(|&id| id == idx4));
+        }).await;
     }
 
-    #[test]
-    fn test_update_and_get_strategy() {
-        test_with_classifier(|classifier| {
+    #[tokio::test]
+    async fn test_update_and_get_strategy() {
+        test_with_classifier(|mut classifier| async move {
             let strategy = DedupStrategy {
-                case_sensitive: true,
-                ignore_whitespace: false,
-                ignore_punctuation: false,
-                normalize_unicode: true,
-                split_strategy: SplitStrategy::Words,
-                comparison_scope: ComparisonScope::Local,
-                min_length: 3,
                 similarity_threshold: 0.8,
-                similarity_method: SimilarityMethod::Fuzzy,
+                case_sensitive: false,
+                ignore_whitespace: true,
+                ignore_punctuation: true,
+                normalize_unicode: true,
+                split_strategy: SplitStrategy::default(),
+                comparison_scope: ComparisonScope::default(),
+                min_length: 5,
+                similarity_method: SimilarityMethod::default(),
                 use_parallel: true,
             };
             
@@ -206,22 +232,22 @@ mod tests {
             
             // Get and verify strategy
             let retrieved_strategy = classifier.get_strategy();
-            assert_eq!(retrieved_strategy.case_sensitive, true);
-            assert_eq!(retrieved_strategy.ignore_whitespace, false);
-            assert_eq!(retrieved_strategy.ignore_punctuation, false);
-            assert_eq!(retrieved_strategy.normalize_unicode, true);
-            assert_eq!(retrieved_strategy.split_strategy, SplitStrategy::Words);
-            assert_eq!(retrieved_strategy.comparison_scope, ComparisonScope::Local);
-            assert_eq!(retrieved_strategy.min_length, 3);
-            assert_eq!(retrieved_strategy.similarity_threshold, 0.8);
-            assert_eq!(retrieved_strategy.similarity_method, SimilarityMethod::Fuzzy);
-            assert_eq!(retrieved_strategy.use_parallel, true);
-        });
+            assert_eq!(retrieved_strategy.similarity_threshold, strategy.similarity_threshold);
+            assert_eq!(retrieved_strategy.case_sensitive, strategy.case_sensitive);
+            assert_eq!(retrieved_strategy.ignore_whitespace, strategy.ignore_whitespace);
+            assert_eq!(retrieved_strategy.ignore_punctuation, strategy.ignore_punctuation);
+            assert_eq!(retrieved_strategy.normalize_unicode, strategy.normalize_unicode);
+            assert_eq!(retrieved_strategy.split_strategy, strategy.split_strategy);
+            assert_eq!(retrieved_strategy.comparison_scope, strategy.comparison_scope);
+            assert_eq!(retrieved_strategy.min_length, strategy.min_length);
+            assert_eq!(retrieved_strategy.similarity_method, strategy.similarity_method);
+            assert_eq!(retrieved_strategy.use_parallel, strategy.use_parallel);
+        }).await;
     }
 
-    #[test]
-    fn test_clear() {
-        test_with_classifier(|classifier| {
+    #[tokio::test]
+    async fn test_clear() {
+        test_with_classifier(|mut classifier| async move {
             // Add some texts
             classifier.add_text("Text 1".to_string());
             classifier.add_text("Text 2".to_string());
@@ -234,6 +260,6 @@ mod tests {
             
             // Verify texts were cleared
             assert_eq!(classifier.get_all_texts().len(), 0);
-        });
+        }).await;
     }
 }

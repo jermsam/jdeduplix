@@ -39,7 +39,7 @@ const sizeClasses = {
         <div class="fixed inset-0 bg-black/25 backdrop-blur-sm" />
       </TransitionChild>
 
-      <div class="fixed inset-0 overflow-y-auto">
+      <div class="fixed inset-0 overflow-y-auto overflow-x-hidden">
         <div class="flex min-h-full items-center justify-center p-4 text-center">
           <TransitionChild
             as="template"
@@ -53,7 +53,7 @@ const sizeClasses = {
             <DialogPanel 
               :class="[
                 sizeClasses[size],
-                'w-full transform overflow-hidden rounded-lg theme-surface p-6 text-left align-middle shadow-xl transition-all'
+                'w-full relative theme-surface p-6 rounded-2xl text-left align-middle shadow-xl transition-all max-w-full overflow-hidden'
               ]"
             >
               <DialogTitle v-if="title" class="text-lg font-medium leading-6 text-theme-primary mb-4">
