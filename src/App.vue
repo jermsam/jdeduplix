@@ -67,18 +67,39 @@
           <div class="relative group">
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/5 dark:to-purple-500/5 rounded-2xl blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
             <div class="relative">
-              <div class="absolute top-3 left-3 flex items-center space-x-3 z-10">
-                <div class="flex space-x-1.5">
-                  <div class="w-3 h-3 rounded-full bg-red-400/80 dark:bg-red-500/80" />
-                  <div class="w-3 h-3 rounded-full bg-amber-400/80 dark:bg-amber-500/80" />
-                  <div class="w-3 h-3 rounded-full bg-green-400/80 dark:bg-green-500/80" />
+              <div class="absolute top-3 inset-x-3 flex items-center justify-between z-10">
+                <div class="flex items-center space-x-3">
+                  <div class="flex space-x-1.5">
+                    <div class="w-3 h-3 rounded-full bg-red-400/80 dark:bg-red-500/80" />
+                    <div class="w-3 h-3 rounded-full bg-amber-400/80 dark:bg-amber-500/80" />
+                    <div class="w-3 h-3 rounded-full bg-green-400/80 dark:bg-green-500/80" />
+                  </div>
+                  <span class="text-sm font-medium text-slate-400 dark:text-slate-500">Editor</span>
                 </div>
-                <span class="text-sm font-medium text-slate-400 dark:text-slate-500">Editor</span>
+                <div class="flex items-center space-x-2">
+                  <button
+                    @click="addTestText"
+                    class="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                  >
+                    Add Test Text
+                  </button>
+                  <button
+                    @click="findDuplicates"
+                    :disabled="!text.trim()"
+                    class="px-3 py-1 text-xs font-medium text-white dark:text-white bg-indigo-500 dark:bg-indigo-500 hover:bg-indigo-600 dark:hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm shadow-indigo-500/20 dark:shadow-indigo-400/20 transition-all hover:shadow-md hover:shadow-indigo-500/25 dark:hover:shadow-indigo-400/25 hover:-translate-y-0.5"
+                  >
+                    Process
+                  </button>
+                  <button
+                    @click="clearText"
+                    :disabled="!text.trim()"
+                    class="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
-              <EditorContent :editor="editor" />
-              <div 
-                v-if="isProcessing"
-                class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+              <div class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl" v-if="isProcessing">
                 <div class="flex items-center space-x-3">
                   <div class="relative">
                     <div class="w-12 h-12 border-2 border-indigo-500/20 dark:border-indigo-400/20 rounded-full animate-ping absolute inset-0"></div>
@@ -87,6 +108,7 @@
                   <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Processing...</span>
                 </div>
               </div>
+              <EditorContent :editor="editor" />
             </div>
           </div>
 
@@ -178,6 +200,22 @@ async function findDuplicates() {
   } finally {
     isProcessing.value = false
   }
+}
+
+function addTestText() {
+  const testText = `Here is some sample text with duplicates:
+This is a test sentence.
+This is another sentence.
+This is a test sentence.
+Here is some different text.
+This is another sentence.
+Here is some different text.`
+  
+  editor.value?.commands.setContent(testText)
+}
+
+function clearText() {
+  editor.value?.commands.clearContent()
 }
 
 // Watch for changes in text or strategy to auto-update results
