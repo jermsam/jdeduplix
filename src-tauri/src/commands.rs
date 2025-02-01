@@ -42,6 +42,7 @@ pub async fn get_text(state: State<'_, Mutex<DedupManager>>, id: usize) -> Resul
     manager.get_text(id).ok_or_else(|| "Text not found".to_string())
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;

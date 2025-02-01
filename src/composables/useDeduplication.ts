@@ -1,6 +1,7 @@
-import { ref, watch } from 'vue'
+import {onMounted, ref, watch} from 'vue';
 import { invoke } from '@tauri-apps/api/core'
-import { DedupStrategy, DuplicateGroup, DEFAULT_STRATEGY } from '../types/dedup'
+import {DedupStrategy, DEFAULT_STRATEGY, DuplicateGroup} from '../types/dedup.ts';
+
 
 export function useDeduplication() {
   const strategy = ref<DedupStrategy>({ ...DEFAULT_STRATEGY })
@@ -39,9 +40,9 @@ export function useDeduplication() {
 
   const loadSavedStrategy = async () => {
     try {
-      const savedStrategy = await invoke<DedupStrategy>('get_strategy')
+      const savedStrategy = await invoke<string>('get_strategy')
       if (savedStrategy) {
-        strategy.value = savedStrategy
+        strategy.value = JSON.parse(savedStrategy)
       }
     } catch (error) {
       console.error('Failed to load saved strategy:', error)
@@ -50,13 +51,14 @@ export function useDeduplication() {
 
   const findDuplicates = async (text: string) => {
     try {
+      await loadSavedStrategy()
       // If we're updating the strategy, wait for it to finish
       if (isUpdatingStrategy.value) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       
       // First add the text - use named parameter
-      const idx = await invoke<number>('add_text', { text })
+      await invoke<number>('add_text', { text })
       texts.value.push(text)
       
       // If we're using semantic similarity, wait a bit for processing
@@ -65,7 +67,7 @@ export function useDeduplication() {
       }
       
       // Then get the duplicates
-      const results = await invoke<number[][]>('find_duplicates')
+      const results = await invoke<number[][]>('deduplicate_texts')
       
       // Transform the results into DuplicateGroup format
       duplicates.value = results.map(group => ({
@@ -89,8 +91,10 @@ export function useDeduplication() {
     }
   }
 
-  // Load strategy from backend
-  loadSavedStrategy()
+  onMounted(async ()=>{
+    // Load strategy from backend
+    await loadSavedStrategy()
+  })
 
   return {
     strategy,

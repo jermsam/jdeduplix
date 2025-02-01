@@ -22,7 +22,8 @@
     "@tiptap/starter-kit": "^2.11.3",
     "@tiptap/vue-3": "^2.11.3",
     "@vueuse/core": "^12.5.0",
-    "vue": "^3.4.15"
+    "vue": "^3.4.15",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0-rc.18",
