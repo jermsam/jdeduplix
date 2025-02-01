@@ -59,7 +59,11 @@ export function useDeduplication() {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       
-      // First add the text - use named parameter
+      // Clear existing texts first
+      await invoke('clear')
+      texts.value = []
+      
+      // Add the new text
       await invoke<number>('add_text', { text })
       texts.value.push(text)
       
@@ -67,8 +71,8 @@ export function useDeduplication() {
       if (strategy.value.similarity_method === 'Semantic') {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-      const result = await invoke<DuplicateResult>('deduplicate_texts')
-      results.value = result
+      results.value =  await invoke<DuplicateResult>('deduplicate_texts')
+  
     } catch (error) {
       console.error('Failed to find duplicates:', error)
       results.value = { duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } }

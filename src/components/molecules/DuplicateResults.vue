@@ -20,11 +20,14 @@
           <div v-for="(group, index) in duplicateGroups" :key="index"
                class="bg-white dark:bg-gray-900 rounded-lg shadow-sm ring-1 ring-slate-200/80 dark:ring-gray-800 p-4">
             <div class="flex items-center justify-between mb-2">
-              <div class="text-sm font-medium text-slate-700 dark:text-gray-100">Group {{ index + 1 }}</div>
-              <div class="text-xs text-slate-500 dark:text-gray-400">{{ group.similarity * 100 }}% similar</div>
+              <div class="text-sm font-medium text-slate-700 dark:text-gray-100">Duplicate Text</div>
+              <div class="text-xs text-slate-500 dark:text-gray-400">
+                Appears {{ group.duplicates.length + 1 }} times
+              </div>
             </div>
-            <div v-for="(duplicate, index) in group.duplicates" :key="index"
-                 class="text-sm text-slate-600 dark:text-gray-300 whitespace-pre-wrap">{{ duplicate }}
+            <!-- The duplicate text -->
+            <div class="text-sm text-slate-600 dark:text-gray-300 whitespace-pre-wrap bg-slate-50 dark:bg-gray-800 p-2 rounded">
+              {{ group.original }}
             </div>
           </div>
         </div>
