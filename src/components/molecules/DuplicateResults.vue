@@ -36,7 +36,7 @@ interface DuplicateGroup {
   similarity: number
 }
 
-const props = defineProps<{
+ defineProps<{
   duplicates: DuplicateGroup[]
 }>()
 </script>

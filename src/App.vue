@@ -3,7 +3,7 @@
       class="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-gray-950 dark:to-gray-900 transition-colors">
     <div class="max-w-[1600px] mx-auto px-3 py-4">
       <!-- Header -->
-      <Header v-model:is-dark="isDark"/>
+      <Menu v-model:is-dark="isDark"/>
 
       <!-- Main Content -->
       <main class="grid grid-cols-1 lg:grid-cols-5 gap-5">
@@ -43,7 +43,7 @@
   import DedupSettings from './components/molecules/DedupSettings.vue';
   import DuplicateResults from './components/molecules/DuplicateResults.vue';
   import {invoke} from '@tauri-apps/api/core';
-  import Header from './components/molecules/Header.vue';
+  import Menu from './components/molecules/Menu.vue';
   import TextEditor from './components/molecules/TextEditor.vue';
 
   const isDark = useDark();

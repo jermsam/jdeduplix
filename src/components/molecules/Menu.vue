@@ -49,11 +49,13 @@
 </template>
 
 <script setup lang="ts">
-  defineProps({
+  defineProps<{
     isDark: Boolean,
-  })
+  }>()
 
-  defineEmits(['update:isDark'])
+  defineEmits<{
+    (e: 'update:isDark', value: boolean): void
+  }>()
 
 </script>
 
