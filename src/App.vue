@@ -69,31 +69,31 @@
             <div class="relative">
               <div class="absolute top-3 inset-x-3 flex items-center justify-between z-10">
                 <div class="flex items-center space-x-3">
-                  <div class="flex space-x-1.5">
-                    <div class="w-3 h-3 rounded-full bg-red-400/80 dark:bg-red-500/80" />
-                    <div class="w-3 h-3 rounded-full bg-amber-400/80 dark:bg-amber-500/80" />
-                    <div class="w-3 h-3 rounded-full bg-green-400/80 dark:bg-green-500/80" />
+                  <div class="flex space-x-1.5 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
+                    <div class="w-3 h-3 rounded-full bg-red-400 dark:bg-red-500" />
+                    <div class="w-3 h-3 rounded-full bg-amber-400 dark:bg-amber-500" />
+                    <div class="w-3 h-3 rounded-full bg-green-400 dark:bg-green-500" />
                   </div>
-                  <span class="text-sm font-medium text-slate-400 dark:text-slate-500">Editor</span>
+                  <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Editor</span>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center divide-x divide-slate-200 dark:divide-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
                   <button
                     @click="addTestText"
-                    class="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                    class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     Add Test Text
                   </button>
                   <button
                     @click="findDuplicates"
                     :disabled="!hasText"
-                    class="px-3 py-1 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-400 dark:to-purple-400 hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-500 dark:hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm shadow-indigo-500/20 dark:shadow-indigo-400/20 transition-all hover:shadow-md hover:shadow-indigo-500/25 dark:hover:shadow-indigo-400/25 hover:-translate-y-0.5 ring-1 ring-white/20 dark:ring-white/10"
+                    class="px-4 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-400 dark:to-purple-400 hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-500 dark:hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-indigo-500/25 dark:hover:shadow-indigo-400/25"
                   >
                     Process
                   </button>
                   <button
                     @click="clearText"
                     :disabled="!hasText"
-                    class="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     Clear
                   </button>
@@ -112,6 +112,13 @@
             </div>
           </div>
 
+          <div v-if="hasText && !isProcessing && results.length === 0" 
+            class="mt-8 flex flex-col items-center justify-center text-center">
+            <CheckCircleIcon class="w-12 h-12 text-green-500 dark:text-green-400" />
+            <h3 class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">No Duplicates Found</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Your text appears to be free of duplicate content.</p>
+          </div>
+
           <DuplicateResults
             :duplicates="results"
             class="min-h-[300px] bg-white dark:bg-gray-900 rounded-2xl ring-1 ring-slate-200 dark:ring-gray-800 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(0deg,rgba(0,0,0,0.02)_0px,rgba(0,0,0,0.02)_1px,transparent_1px,transparent_2px),repeating-linear-gradient(90deg,rgba(0,0,0,0.02)_0px,rgba(0,0,0,0.02)_1px,transparent_1px,transparent_2px)] dark:[background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_2px),repeating-linear-gradient(90deg,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_2px)] [background-size:3px_3px]"
@@ -128,6 +135,7 @@ import { useDark } from '@vueuse/core'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import DedupSettings from './components/molecules/DedupSettings.vue'
 import DuplicateResults from './components/molecules/DuplicateResults.vue'
 import { invoke } from '@tauri-apps/api/core'
@@ -164,7 +172,7 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: {
-      class: 'w-full h-80 pt-12 px-5 pb-5 bg-white dark:bg-gray-900 rounded-2xl ring-2 ring-dashed ring-slate-300/70 dark:ring-gray-700/70 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none resize-none text-slate-700 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(135deg,rgba(99,102,241,0.012)_0px,rgba(99,102,241,0.012)_2px,transparent_2px,transparent_4px)] dark:[background-image:repeating-linear-gradient(135deg,rgba(129,140,248,0.012)_0px,rgba(129,140,248,0.012)_2px,transparent_2px,transparent_4px)] [background-size:4px_4px] prose prose-sm max-w-none prose-slate dark:prose-invert',
+      class: 'w-full h-80 pt-12 px-5 pb-5 bg-white dark:bg-gray-900 rounded-2xl ring-2 ring-dashed ring-slate-300/70 dark:ring-gray-700/70 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none resize-none text-slate-700 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(135deg,rgba(99,102,241,0.012)_0px,rgba(99,102,241,0.012)_2px,transparent_2px,transparent_4px)] dark:[background-image:repeating-linear-gradient(135deg,rgba(129,140,248,0.012)_0px,rgba(129,140,248,0.012)_2px,transparent_2px,transparent_4px)] [background-size:4px_4px] prose prose-sm max-w-none prose-slate dark:prose-invert prose-p:my-0 prose-headings:my-0',
     },
   },
   autofocus: 'end',
