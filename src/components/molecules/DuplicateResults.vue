@@ -63,58 +63,11 @@
     color: #666;
   }
 
-  .duplicate-group {
-    margin-bottom: 2rem;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 1rem;
-  }
-
   .duplicate-group h3 {
     margin-bottom: 1rem;
     color: #333;
   }
 
-  .file-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .file-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .file-name {
-    font-weight: 500;
-  }
-
-  .file-path {
-    font-size: 0.875rem;
-    color: #666;
-  }
-
-  .file-size {
-    font-size: 0.875rem;
-    color: #888;
-  }
-
-  .file-actions {
-    display: flex;
-    gap: 0.5rem;
-  }
 
   button {
     padding: 0.5rem 1rem;
@@ -125,21 +78,5 @@
     transition: background-color 0.2s;
   }
 
-  .preview-btn {
-    background-color: #e0e0e0;
-    color: #333;
-  }
 
-  .preview-btn:hover {
-    background-color: #d0d0d0;
-  }
-
-  .delete-btn {
-    background-color: #ff4444;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background-color: #ff2222;
-  }
 </style>
