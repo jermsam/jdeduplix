@@ -85,14 +85,14 @@
                   </button>
                   <button
                     @click="findDuplicates"
-                    :disabled="!text.trim()"
-                    class="px-3 py-1 text-xs font-medium text-white dark:text-white bg-indigo-500 dark:bg-indigo-500 hover:bg-indigo-600 dark:hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm shadow-indigo-500/20 dark:shadow-indigo-400/20 transition-all hover:shadow-md hover:shadow-indigo-500/25 dark:hover:shadow-indigo-400/25 hover:-translate-y-0.5"
+                    :disabled="!hasText"
+                    class="px-3 py-1 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-400 dark:to-purple-400 hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-500 dark:hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm shadow-indigo-500/20 dark:shadow-indigo-400/20 transition-all hover:shadow-md hover:shadow-indigo-500/25 dark:hover:shadow-indigo-400/25 hover:-translate-y-0.5 ring-1 ring-white/20 dark:ring-white/10"
                   >
                     Process
                   </button>
                   <button
                     @click="clearText"
-                    :disabled="!text.trim()"
+                    :disabled="!hasText"
                     class="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Clear
@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useDark } from '@vueuse/core'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
@@ -152,6 +152,8 @@ const strategy = ref<DedupStrategy>({
 const text = ref('')
 const results = ref<any[]>([])
 const isProcessing = ref(false)
+
+const hasText = computed(() => editor.value?.getText().trim().length > 0)
 
 const editor = useEditor({
   extensions: [
@@ -183,12 +185,12 @@ onMounted(() => {
 })
 
 async function findDuplicates() {
-  if (!text.value.trim()) return
+  if (!hasText.value) return
   
   isProcessing.value = true
   try {
     const duplicates = await invoke('find_duplicates', {
-      text: text.value,
+      text: editor.value?.getText() || '',
       strategy: {
         ...strategy.value,
         similarity_threshold: Number(strategy.value.similarity_threshold)
@@ -215,6 +217,7 @@ Here is some different text.`
 }
 
 function clearText() {
+  if (!hasText.value) return
   editor.value?.commands.clearContent()
 }
 
