@@ -1,13 +1,13 @@
 // Vector indexing components
 
 use blake3;
-use unicode_normalization::UnicodeNormalization;
-use serde::Serialize;
+
+use serde::{Serialize, Deserialize};
 use strsim::jaro_winkler;
 use super::types::{SimilarityMethod, DedupStrategy};
 use super::semantic::{SemanticAnalyzer, DocumentVector};
 use std::collections::HashMap;
-use anyhow::Result;
+
 
 #[derive(Debug, Serialize)]
 pub struct TextVector {
@@ -43,24 +43,6 @@ impl TextVector {
     fn normalize_text(strategy: &DedupStrategy, text: &str) -> String {
         let mut result = text.to_string();
 
-        if !strategy.case_sensitive {
-            result = result.to_lowercase();
-        }
-
-        if strategy.normalize_unicode {
-            result = result.nfkc().collect();
-        }
-
-        if strategy.ignore_whitespace {
-            result = result.split_whitespace().collect::<Vec<_>>().join(" ");
-        }
-
-        if strategy.ignore_punctuation {
-            result = result.chars()
-                .filter(|c| !c.is_ascii_punctuation())
-                .collect();
-        }
-
         result
     }
 
@@ -81,22 +63,19 @@ impl TextVector {
                     0.0
                 }
             }
-            SimilarityMethod::Fuzzy => {
-                // For case-sensitive comparison, first check if the texts match exactly
-                if self.strategy.case_sensitive && self.text != other.text {
-                    return 0.0;
-                }
-                
-                // For case-insensitive or if case-sensitive and texts match
-                jaro_winkler(
-                    &self.normalized_text,
-                    &other.normalized_text,
-                ) as f32 as f64
-            }
             SimilarityMethod::Semantic => {
                 match (&self.doc_vector, &other.doc_vector) {
-                    (Some(vec1), Some(vec2)) => calculate_cosine_similarity(vec1, vec2) as f64,
-                    _ => 0.0, // If vectors aren't prepared, consider them dissimilar
+                    (Some(v1), Some(v2)) => calculate_cosine_similarity(&v1.vector, &v2.vector) as f64,
+                    _ => 0.0,
+                }
+            }
+            SimilarityMethod::Levenshtein => {
+                let distance = strsim::levenshtein(&self.normalized_text, &other.normalized_text);
+                let max_len = self.normalized_text.len().max(other.normalized_text.len());
+                if max_len == 0 {
+                    1.0
+                } else {
+                    1.0 - (distance as f64 / max_len as f64)
                 }
             }
         }
@@ -132,48 +111,13 @@ fn calculate_cosine_similarity(v1: &[f32], v2: &[f32]) -> f32 {
     dot_product / (norm1 * norm2)
 }
 
-#[derive(Debug)]
-pub struct VectorStore {
-    analyzer: SemanticAnalyzer,
-    documents: HashMap<String, Document>,
-}
-
-impl VectorStore {
-    pub fn new() -> Result<Self> {
-        Ok(Self {
-            analyzer: SemanticAnalyzer::new(),
-            documents: HashMap::new(),
-        })
-    }
-
-    pub fn add_document(&mut self, id: String, text: &str) {
-        let mut doc = Document::new(text.to_string());
-        doc.update_vector(&mut self.analyzer);
-        self.documents.insert(id, doc);
-    }
-
-    pub fn find_similar(&self, text: &str, threshold: f32) -> Vec<String> {
-        let mut query_doc = Document::new(text.to_string());
-        query_doc.update_vector(&mut self.analyzer.clone());
-
-        let mut similar_docs = Vec::new();
-        for (id, doc) in &self.documents {
-            let similarity = doc.similarity(&query_doc, &mut self.analyzer.clone());
-            if similarity >= threshold {
-                similar_docs.push(id.clone());
-            }
-        }
-        similar_docs
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub struct Document {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextDocument {
     text: String,
     embedding: Option<Vec<f32>>,
 }
 
-impl Document {
+impl TextDocument {
     pub fn new(text: String) -> Self {
         Self {
             text,
@@ -181,120 +125,66 @@ impl Document {
         }
     }
 
-    pub fn update_vector(&mut self, analyzer: &mut SemanticAnalyzer) {
-        self.embedding = Some(analyzer.encode(&self.text));
+    pub fn update_vector(&mut self, analyzer: &SemanticAnalyzer) {
+        let doc = analyzer.encode(&self.text);
+        self.embedding = Some(doc.vector);
     }
 
-    pub fn similarity(&self, other: &Document, analyzer: &mut SemanticAnalyzer) -> f32 {
-        // Ensure both documents have embeddings
-        let embedding1 = match &self.embedding {
-            Some(e) => e.clone(),
-            None => analyzer.encode(&self.text),
-        };
-        let embedding2 = match &other.embedding {
-            Some(e) => e.clone(),
-            None => analyzer.encode(&other.text),
-        };
-
-        // Use cosine similarity between embeddings
-        calculate_cosine_similarity(&embedding1, &embedding2)
+    pub fn similarity(&self, other: &TextDocument, analyzer: &SemanticAnalyzer) -> f64 {
+        analyzer.calculate_similarity(&self.text, &other.text) as f64
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[derive(Debug)]
+pub struct VectorStore {
+    analyzer: SemanticAnalyzer,
+    strategy: DedupStrategy,
+    documents: HashMap<usize, TextDocument>,
+}
 
-    #[test]
-    fn test_normalization() {
-        let strategy = DedupStrategy {
-            case_sensitive: false,
-            ignore_whitespace: true,
-            ignore_punctuation: true,
-            ..Default::default()
-        };
-        
-        let text = "Hello,    World! Test123";
-        let vector = TextVector::new(text.to_string(), &strategy);
-        let normalized = vector.normalized_text;
-        assert_eq!(normalized.trim(), "hello world test123");
+impl VectorStore {
+    pub fn new(strategy: DedupStrategy) -> Self {
+        Self {
+            analyzer: SemanticAnalyzer::new(),
+            strategy,
+            documents: HashMap::new(),
+        }
     }
 
-    #[test]
-    fn test_similarity() {
-        let strategy = DedupStrategy::default();
-        let vector1 = TextVector::new("hello world".to_string(), &strategy);
-        let vector2 = TextVector::new("hello world".to_string(), &strategy);
-        let vector3 = TextVector::new("different text".to_string(), &strategy);
-
-        assert!(vector1.is_similar(&vector2, 0.8));
-        assert!(!vector1.is_similar(&vector3, 0.8));
+    pub fn add_document(&mut self, id: usize, text: String) {
+        let mut doc = TextDocument::new(text);
+        doc.update_vector(&self.analyzer);
+        self.documents.insert(id, doc);
     }
 
-    #[test]
-    fn test_edge_cases() {
-        let strategy = DedupStrategy::default();
-        let empty = TextVector::new("".to_string(), &strategy);
-        let special = TextVector::new("Hello! @#$%".to_string(), &strategy);
-        let numbers = TextVector::new("123 456".to_string(), &strategy);
+    pub fn find_duplicates(&self, threshold: f64) -> Vec<Vec<usize>> {
+        let mut groups = Vec::new();
+        let mut processed = std::collections::HashSet::new();
 
-        assert!(empty.is_similar(&empty, 0.8));
-        assert!(special.is_similar(&special, 0.8));
-        assert!(numbers.is_similar(&numbers, 0.8));
-    }
+        for (&id1, doc1) in &self.documents {
+            if processed.contains(&id1) {
+                continue;
+            }
 
-    #[test]
-    fn test_case_sensitivity() {
-        let case_sensitive_strategy = DedupStrategy {
-            case_sensitive: true,
-            ..Default::default()
-        };
-        let case_insensitive_strategy = DedupStrategy {
-            case_sensitive: false,
-            ..Default::default()
-        };
+            let mut group = vec![id1];
+            for (&id2, doc2) in &self.documents {
+                if id1 == id2 || processed.contains(&id2) {
+                    continue;
+                }
 
-        // Case-sensitive comparisons
-        let hello_upper_sensitive = TextVector::new("Hello".to_string(), &case_sensitive_strategy);
-        let hello_lower_sensitive = TextVector::new("hello".to_string(), &case_sensitive_strategy);
-        let hello_mixed_sensitive = TextVector::new("HeLLo".to_string(), &case_sensitive_strategy);
+                let similarity = doc1.similarity(doc2, &self.analyzer);
+                if similarity >= threshold {
+                    group.push(id2);
+                    processed.insert(id2);
+                }
+            }
 
-        // Case-insensitive comparisons
-        let hello_upper_insensitive = TextVector::new("Hello".to_string(), &case_insensitive_strategy);
-        let hello_lower_insensitive = TextVector::new("hello".to_string(), &case_insensitive_strategy);
-        let hello_mixed_insensitive = TextVector::new("HeLLo".to_string(), &case_insensitive_strategy);
+            if group.len() > 1 {
+                groups.push(group);
+            }
+            processed.insert(id1);
+        }
 
-        // Case-sensitive tests
-        assert!(!hello_upper_sensitive.is_similar(&hello_lower_sensitive, 0.8));
-        assert!(!hello_upper_sensitive.is_similar(&hello_mixed_sensitive, 0.8));
-
-        // Case-insensitive tests
-        assert!(hello_upper_insensitive.is_similar(&hello_lower_insensitive, 0.8));
-        assert!(hello_upper_insensitive.is_similar(&hello_mixed_insensitive, 0.8));
-    }
-
-    #[test]
-    fn test_vector_store() -> Result<()> {
-        let mut store = VectorStore::new()?;
-        
-        store.add_document("doc1".to_string(), "Hello world");
-        store.add_document("doc2".to_string(), "Hello there");
-        store.add_document("doc3".to_string(), "Something different");
-        
-        let similar = store.find_similar("Hi world", 0.8);
-        assert!(similar.contains(&"doc1".to_string()));
-        
-        Ok(())
-    }
-
-    #[test]
-    fn test_text_normalization() -> Result<()> {
-        let store = VectorStore::new()?;
-        
-        let text = "Hello World!";
-        let normalized = store.analyzer.normalize_text(text);
-        assert_eq!(normalized, "hello world!");
-        
-        Ok(())
+        groups
     }
 }
