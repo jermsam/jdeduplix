@@ -8,7 +8,6 @@
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Your text appears to be free of duplicate content.</p>
     </div>
     <div v-else class="results-container">
-      KKK
       <div class="space-y-4">
         <!-- Header -->
         <div class="flex items-center justify-between">
@@ -22,9 +21,9 @@
                class="bg-white dark:bg-gray-900 rounded-lg shadow-sm ring-1 ring-slate-200/80 dark:ring-gray-800 p-4">
             <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium text-slate-700 dark:text-gray-100">Group {{ index + 1 }}</div>
-              <div class="text-xs text-slate-500 dark:text-gray-400">{{ group.similarity.toFixed(1) }}% similar</div>
+              <div class="text-xs text-slate-500 dark:text-gray-400">{{ group.similarity * 100 }}% similar</div>
             </div>
-            <div v-for="(duplicate, index) in duplicateGroups" :key="index"
+            <div v-for="(duplicate, index) in group.duplicates" :key="index"
                  class="text-sm text-slate-600 dark:text-gray-300 whitespace-pre-wrap">{{ duplicate }}
             </div>
           </div>

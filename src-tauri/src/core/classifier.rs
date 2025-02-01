@@ -2,7 +2,7 @@
 pub struct SmartClassifier;
 
 use std::collections::HashSet;
-use super::types::DedupStrategy;
+use crate::state::DedupStrategy;
 use crate::core::semantic::SemanticAnalyzer;
 
 

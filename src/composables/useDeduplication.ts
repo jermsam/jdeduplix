@@ -1,11 +1,11 @@
 import {onMounted, ref, watch} from 'vue';
 import { invoke } from '@tauri-apps/api/core'
-import {DedupStrategy, DEFAULT_STRATEGY, DuplicateGroup} from '../types/dedup.ts';
+import {DedupStrategy, DEFAULT_STRATEGY, DuplicateResult} from '../types/dedup.ts';
 
 
 export function useDeduplication() {
   const strategy = ref<DedupStrategy>({ ...DEFAULT_STRATEGY })
-  const duplicates = ref<DuplicateGroup[]>([])
+  const results = ref<DuplicateResult>({ duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } })
   const texts = ref<string[]>([])
   const isUpdatingStrategy = ref(false)
 
@@ -15,16 +15,18 @@ export function useDeduplication() {
       try {
         isUpdatingStrategy.value = true
         await invoke('update_strategy', {
-          caseSensitive: newStrategy.case_sensitive,
-          ignoreWhitespace: newStrategy.ignore_whitespace,
-          ignorePunctuation: newStrategy.ignore_punctuation,
-          normalizeUnicode: newStrategy.normalize_unicode,
-          splitStrategy: newStrategy.split_strategy,
-          comparisonScope: newStrategy.comparison_scope,
-          minLength: newStrategy.min_length,
-          similarityThreshold: newStrategy.similarity_threshold,
-          similarityMethod: newStrategy.similarity_method,
-          useParallel: newStrategy.use_parallel,
+          strategy: {
+            caseSensitive: newStrategy.case_sensitive,
+            ignoreWhitespace: newStrategy.ignore_whitespace,
+            ignorePunctuation: newStrategy.ignore_punctuation,
+            normalizeUnicode: newStrategy.normalize_unicode,
+            splitStrategy: newStrategy.split_strategy,
+            comparisonScope: newStrategy.comparison_scope,
+            minLength: newStrategy.min_length,
+            similarityThreshold: newStrategy.similarity_threshold,
+            similarityMethod: newStrategy.similarity_method,
+            useParallel: newStrategy.use_parallel,
+          }
         })
         // If we're using semantic similarity, wait a bit for processing
         if (newStrategy.similarity_method === 'Semantic') {
@@ -65,26 +67,18 @@ export function useDeduplication() {
       if (strategy.value.similarity_method === 'Semantic') {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-      
-      // Then get the duplicates
-      const results = await invoke<number[][]>('deduplicate_texts')
-      
-      // Transform the results into DuplicateGroup format
-      duplicates.value = results.map(group => ({
-        original: texts.value[group[0]],
-        duplicates: group.slice(1).map(i => texts.value[i]),
-        similarity: strategy.value.similarity_threshold
-      }))
+      const result = await invoke<DuplicateResult>('deduplicate_texts')
+      results.value = result
     } catch (error) {
       console.error('Failed to find duplicates:', error)
-      duplicates.value = []
+      results.value = { duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } }
     }
   }
 
   const clearDuplicates = async () => {
     try {
       await invoke('clear')
-      duplicates.value = []
+      results.value = { duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } }
       texts.value = []
     } catch (error) {
       console.error('Failed to clear duplicates:', error)
@@ -98,7 +92,7 @@ export function useDeduplication() {
 
   return {
     strategy,
-    duplicates,
+    results,
     loadSavedStrategy,
     findDuplicates,
     clearDuplicates,

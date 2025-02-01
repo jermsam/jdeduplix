@@ -1,19 +1,68 @@
 use serde::{Deserialize, Serialize};
-use crate::core::types::{DedupStrategy, SimilarityMethod};
 use anyhow::Result;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SimilarityMethod {
+    Exact,
+    Semantic,
+    Levenshtein,
+}
+
+impl Default for SimilarityMethod {
+    fn default() -> Self {
+        SimilarityMethod::Exact
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DedupStrategy {
+    pub similarity_method: SimilarityMethod,
+    pub similarity_threshold: f64,
+    pub case_sensitive: bool,
+    pub ignore_punctuation: bool,
+    pub ignore_whitespace: bool,
+    pub normalize_unicode: bool,
+    pub min_length: Option<u32>,
+    pub comparison_scope: Option<String>,
+    pub split_strategy: Option<String>,
+}
+
+impl Default for DedupStrategy {
+    fn default() -> Self {
+        Self {
+            similarity_method: SimilarityMethod::default(),
+            similarity_threshold: 1.0,
+            case_sensitive: false,
+            ignore_punctuation: true,
+            ignore_whitespace: true,
+            normalize_unicode: true,
+            min_length: None,
+            comparison_scope: None,
+            split_strategy: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DuplicateGroup {
+    pub original: String,
+    pub duplicates: Vec<String>,
+    pub similarity: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DedupResults {
+    pub duplicate_groups: Vec<DuplicateGroup>,
+    pub stats: DedupStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DedupStats {
     pub total_items: usize,
     pub unique_items: usize,
     pub duplicate_groups: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DedupResults {
-    pub groups: Vec<Vec<usize>>,
-    pub stats: DedupStats,
-}
 
 pub struct DedupManager {
     strategy: DedupStrategy,
@@ -88,7 +137,29 @@ impl DedupManager {
             }
 
             if group.len() > 1 {
-                groups.push(group);
+                let original = self.texts[group[0]].clone();
+                let duplicates = group[1..].iter()
+                    .map(|&idx| self.texts[idx].clone())
+                    .collect();
+                let similarity = match self.strategy.similarity_method {
+                    SimilarityMethod::Exact => 1.0,
+                    SimilarityMethod::Levenshtein => {
+                        let text1 = &self.texts[group[0]];
+                        let max_similarity = group[1..].iter().map(|&idx| {
+                            let text2 = &self.texts[idx];
+                            let distance = levenshtein::levenshtein(text1, text2);
+                            let max_len = text1.len().max(text2.len());
+                            1.0 - (distance as f64 / max_len as f64)
+                        }).fold(0.0, f64::max);
+                        max_similarity
+                    },
+                    SimilarityMethod::Semantic => 1.0, // TODO: Implement semantic similarity
+                };
+                groups.push(DuplicateGroup {
+                    original,
+                    duplicates,
+                    similarity,
+                });
             }
             processed.insert(i);
         }
@@ -99,6 +170,6 @@ impl DedupManager {
             duplicate_groups: groups.len(),
         };
 
-        Ok(DedupResults { groups, stats })
+        Ok(DedupResults { duplicate_groups: groups, stats })
     }
 }

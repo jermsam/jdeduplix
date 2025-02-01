@@ -1,6 +1,6 @@
 // Main deduplication engine
 use crate::core::classifier::TextClassifier;
-use crate::core::types::DedupStrategy;
+use crate::state::DedupStrategy;
 use std::collections::HashMap;
 
 pub struct DeduplicationEngine {

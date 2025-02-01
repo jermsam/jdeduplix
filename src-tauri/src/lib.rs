@@ -4,8 +4,7 @@ pub mod commands;
 pub mod core;
 pub mod state;
 
-use crate::core::types::{DedupStrategy, SimilarityMethod};
-use crate::state::DedupManager;
+use crate::state::{DedupManager, DedupStrategy, SimilarityMethod};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -31,3 +31,14 @@ export const DuplicateGroupSchema = z.object({
   duplicates: z.array(z.string()),
   similarity: z.number(),
 });
+
+export const DuplicateStatsSchema = z.object({
+  duplicate_groups: z.number(),
+  total_items: z.number(),
+  unique_items: z.number(),
+});
+
+export const DuplicateResultSchema = z.object({
+  duplicate_groups: z.array(DuplicateGroupSchema),
+  stats: DuplicateStatsSchema
+})

@@ -66,6 +66,10 @@ uuid = { version = "1.6.1", features = ["v4"] }  # Unique identifiers
 
 # Machine Learning and AI
 
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 default = ["custom-protocol"]

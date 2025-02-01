@@ -4,7 +4,7 @@ use blake3;
 
 use serde::{Serialize, Deserialize};
 use strsim::jaro_winkler;
-use super::types::{SimilarityMethod, DedupStrategy};
+use crate::state::{ DedupStrategy, SimilarityMethod};
 use super::semantic::{SemanticAnalyzer, DocumentVector};
 use std::collections::HashMap;
 

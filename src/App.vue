@@ -27,7 +27,7 @@
           />
 
           <DuplicateResults
-              :duplicate-groups="duplicates"
+              :duplicate-groups="duplicateGroups"
               class="min-h-[300px] bg-white dark:bg-gray-900 rounded-2xl ring-1 ring-slate-200 dark:ring-gray-800 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(0deg,rgba(0,0,0,0.02)_0px,rgba(0,0,0,0.02)_1px,transparent_1px,transparent_2px),repeating-linear-gradient(90deg,rgba(0,0,0,0.02)_0px,rgba(0,0,0,0.02)_1px,transparent_1px,transparent_2px)] dark:[background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_2px),repeating-linear-gradient(90deg,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_2px)] [background-size:3px_3px]"
           />
         </div>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-  import {ref} from 'vue';
+  import {ref, computed} from 'vue';
   import {useDark} from '@vueuse/core';
 
   import DedupSettings from './components/molecules/DedupSettings.vue';
@@ -48,32 +48,12 @@
 
   const isDark = useDark();
 
-  interface DedupStrategy {
-    similarity_threshold: number;
-    case_sensitive: boolean;
-    ignore_whitespace: boolean;
-    ignore_punctuation: boolean;
-
-    [key: string]: any;
-  }
-
-  const strategy = ref<DedupStrategy>({
-    similarity_threshold: 0.7,
-    case_sensitive: false,
-    ignore_whitespace: true,
-    ignore_punctuation: true,
-  });
 
   const text = ref('');
   const isProcessing = ref(false);
 
- const {duplicates, findDuplicates} = useDeduplication();
+ const {strategy, results, findDuplicates} = useDeduplication();
 
+ const duplicateGroups = computed(() => results.value.duplicate_groups || []);
 
-  // Watch for changes in text or strategy to auto-update results
-  // watch([text, strategy], async () => {
-  //   if (text.value.trim()) {
-  //     await findDuplicates(text.value);
-  //   }
-  // }, {deep: true});
 </script>
