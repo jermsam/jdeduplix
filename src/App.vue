@@ -67,15 +67,18 @@
           <div class="relative group">
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/5 dark:to-purple-500/5 rounded-2xl blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
             <div class="relative">
-              <textarea
-                v-model="text"
-                class="w-full h-80 p-5 bg-white dark:bg-gray-900 rounded-2xl ring-2 ring-dashed ring-slate-300/70 dark:ring-gray-700/70 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none resize-none text-slate-700 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(135deg,rgba(99,102,241,0.012)_0px,rgba(99,102,241,0.012)_2px,transparent_2px,transparent_4px)] dark:[background-image:repeating-linear-gradient(135deg,rgba(129,140,248,0.012)_0px,rgba(129,140,248,0.012)_2px,transparent_2px,transparent_4px)] [background-size:4px_4px]"
-                placeholder="Paste your text here to find duplicates..."
-              />
+              <div class="absolute top-3 left-3 flex items-center space-x-3 z-10">
+                <div class="flex space-x-1.5">
+                  <div class="w-3 h-3 rounded-full bg-red-400/80 dark:bg-red-500/80" />
+                  <div class="w-3 h-3 rounded-full bg-amber-400/80 dark:bg-amber-500/80" />
+                  <div class="w-3 h-3 rounded-full bg-green-400/80 dark:bg-green-500/80" />
+                </div>
+                <span class="text-sm font-medium text-slate-400 dark:text-slate-500">Editor</span>
+              </div>
+              <EditorContent :editor="editor" />
               <div 
                 v-if="isProcessing"
-                class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl"
-              >
+                class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
                 <div class="flex items-center space-x-3">
                   <div class="relative">
                     <div class="w-12 h-12 border-2 border-indigo-500/20 dark:border-indigo-400/20 rounded-full animate-ping absolute inset-0"></div>
@@ -98,8 +101,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useDark } from '@vueuse/core'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 import DedupSettings from './components/molecules/DedupSettings.vue'
 import DuplicateResults from './components/molecules/DuplicateResults.vue'
 import { invoke } from '@tauri-apps/api/core'
@@ -114,7 +120,7 @@ interface DedupStrategy {
   [key: string]: any
 }
 
-const strategy = reactive<DedupStrategy>({
+const strategy = ref<DedupStrategy>({
   similarity_threshold: 0.7,
   case_sensitive: false,
   ignore_whitespace: true,
@@ -125,6 +131,35 @@ const text = ref('')
 const results = ref<any[]>([])
 const isProcessing = ref(false)
 
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Placeholder.configure({
+      placeholder: 'Paste your text here to find duplicates...',
+    }),
+  ],
+  editorProps: {
+    attributes: {
+      class: 'w-full h-80 pt-12 px-5 pb-5 bg-white dark:bg-gray-900 rounded-2xl ring-2 ring-dashed ring-slate-300/70 dark:ring-gray-700/70 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none resize-none text-slate-700 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:repeating-linear-gradient(135deg,rgba(99,102,241,0.012)_0px,rgba(99,102,241,0.012)_2px,transparent_2px,transparent_4px)] dark:[background-image:repeating-linear-gradient(135deg,rgba(129,140,248,0.012)_0px,rgba(129,140,248,0.012)_2px,transparent_2px,transparent_4px)] [background-size:4px_4px] prose prose-sm max-w-none prose-slate dark:prose-invert',
+    },
+  },
+  autofocus: 'end',
+})
+
+// Sync editor content with text ref
+watch(editor, () => {
+  if (editor.value) {
+    text.value = editor.value.getText()
+  }
+}, { deep: true })
+
+onMounted(() => {
+  // Focus editor when component mounts
+  setTimeout(() => {
+    editor.value?.commands.focus('end')
+  }, 100)
+})
+
 async function findDuplicates() {
   if (!text.value.trim()) return
   
@@ -133,8 +168,8 @@ async function findDuplicates() {
     const duplicates = await invoke('find_duplicates', {
       text: text.value,
       strategy: {
-        ...strategy,
-        similarity_threshold: Number(strategy.similarity_threshold)
+        ...strategy.value,
+        similarity_threshold: Number(strategy.value.similarity_threshold)
       }
     })
     results.value = duplicates as any[]
