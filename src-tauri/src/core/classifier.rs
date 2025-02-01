@@ -119,6 +119,69 @@ impl TextClassifier {
     }
 }
 
+#[cfg(test)]
+pub struct TestTextClassifier {
+    texts: Vec<String>,
+    strategy: DedupStrategy,
+    analyzer: crate::core::semantic::MockSemanticAnalyzer,
+}
+
+#[cfg(test)]
+impl TestTextClassifier {
+    pub fn new(strategy: DedupStrategy, analyzer: crate::core::semantic::MockSemanticAnalyzer) -> Self {
+        Self {
+            texts: Vec::new(),
+            strategy,
+            analyzer,
+        }
+    }
+
+    pub fn add_text(&mut self, text: String) -> usize {
+        self.texts.push(text);
+        self.texts.len() - 1
+    }
+
+    pub fn find_duplicates(&mut self) -> Vec<Vec<usize>> {
+        let mut groups: Vec<Vec<usize>> = Vec::new();
+        let mut processed: HashSet<usize> = HashSet::new();
+        let texts = self.texts.clone();
+
+        for i in 0..texts.len() {
+            if processed.contains(&i) {
+                continue;
+            }
+
+            let mut group = Vec::new();
+            group.push(i);
+            processed.insert(i);
+
+            for j in (i + 1)..texts.len() {
+                if processed.contains(&j) {
+                    continue;
+                }
+
+                let similarity = match self.strategy.similarity_method {
+                    SimilarityMethod::Semantic => {
+                        self.analyzer.calculate_similarity(&texts[i], &texts[j]) as f64
+                    },
+                    _ => 0.0,
+                };
+
+                if similarity >= self.strategy.similarity_threshold as f64 {
+                    group.push(j);
+                    processed.insert(j);
+                }
+            }
+
+            if group.len() > 1 {
+                groups.push(group);
+            }
+        }
+
+        groups
+    }
+}
+
 fn levenshtein(s1: &str, s2: &str) -> usize {
     let len1 = s1.chars().count();
     let len2 = s2.chars().count();
@@ -155,6 +218,7 @@ fn levenshtein(s1: &str, s2: &str) -> usize {
 mod tests {
     use super::*;
     use crate::core::types::{ComparisonScope, SplitStrategy, DedupStrategy, SimilarityMethod};
+    use crate::core::semantic::MockSemanticAnalyzer;
 
     #[test]
     fn test_exact_duplicates() {
@@ -183,30 +247,52 @@ mod tests {
 
     #[test]
     fn test_semantic_similarity() {
-        let mut classifier = TextClassifier::new(DedupStrategy {
-            case_sensitive: false,
-            ignore_whitespace: true,
-            ignore_punctuation: true,
-            normalize_unicode: true,
-            split_strategy: SplitStrategy::WholeText,
-            comparison_scope: ComparisonScope::Global,
-            min_length: 5,
-            similarity_threshold: 0.99999, // Set very high since model is untrained
-            similarity_method: SimilarityMethod::Semantic,
-            use_parallel: false,
-        });
+        let analyzer = MockSemanticAnalyzer::new()
+            .with_similarity(
+                "The cat quickly jumped over the fence",
+                "A feline leaped across the barrier",
+                0.9,
+            )
+            .with_similarity(
+                "The cat quickly jumped over the fence",
+                "My dog sleeps on the couch",
+                0.1,
+            )
+            .with_similarity(
+                "A feline leaped across the barrier",
+                "My dog sleeps on the couch",
+                0.1,
+            );
 
-        // These sentences have different words but similar meanings
+        let mut classifier = TestTextClassifier::new(
+            DedupStrategy {
+                case_sensitive: false,
+                ignore_whitespace: true,
+                ignore_punctuation: true,
+                normalize_unicode: true,
+                split_strategy: SplitStrategy::WholeText,
+                comparison_scope: ComparisonScope::Global,
+                min_length: 5,
+                similarity_threshold: 0.8,
+                similarity_method: SimilarityMethod::Semantic,
+                use_parallel: false,
+            },
+            analyzer,
+        );
+
+        // Add test texts
         classifier.add_text("The cat quickly jumped over the fence".to_string());
         classifier.add_text("A feline leaped across the barrier".to_string());
-        classifier.add_text("My dog sleeps on the couch".to_string()); // Different meaning
+        classifier.add_text("My dog sleeps on the couch".to_string());
 
         let duplicates = classifier.find_duplicates();
         
         // Should find one group of similar texts
         assert_eq!(duplicates.len(), 1, "Should have one group for similar texts");
-        
-        // First group should have the similar sentences
         assert_eq!(duplicates[0].len(), 2, "Group should contain both similar sentences");
+        
+        // Verify the right texts are grouped
+        let group = &duplicates[0];
+        assert!(group.contains(&0) && group.contains(&1), "Group should contain indices 0 and 1");
     }
 }
