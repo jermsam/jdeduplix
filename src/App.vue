@@ -24,6 +24,7 @@
               v-model="text"
               :is-processing="isProcessing"
               @process="findDuplicates"
+              @clear="clearDuplicates"
           />
 
           <DuplicateResults
@@ -52,8 +53,10 @@
   const text = ref('');
   const isProcessing = ref(false);
 
- const {strategy, results, findDuplicates} = useDeduplication();
+ const {strategy, results, findDuplicates, clearDuplicates} = useDeduplication();
 
  const duplicateGroups = computed(() => results.value.duplicate_groups || []);
+
+
 
 </script>

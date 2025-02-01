@@ -62,6 +62,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'process', value: string): void
+  (e: 'clear'): void
 }>()
 
 const editor = useEditor({
@@ -121,6 +122,7 @@ Here is some different text.`
 
 function clearText() {
   if (!hasText.value) return
+  emit('clear')
   editor.value?.commands.clearContent()
 }
 </script>

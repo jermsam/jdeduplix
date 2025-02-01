@@ -12,7 +12,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between">
           <div class="text-sm font-medium text-slate-700 dark:text-gray-100">Duplicate Results</div>
-          <div class="text-xs text-slate-500 dark:text-gray-400">{{ totalDuplicates }} duplicates found</div>
+          <div class="text-xs text-slate-500 dark:text-gray-400">{{ totalDuplicates }} {{ totalDuplicates === 1 ? 'duplicate' : 'duplicates' }} found</div>
         </div>
 
         <!-- Results -->
