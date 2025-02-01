@@ -1,15 +1,18 @@
 // Main deduplication engine
-use super::classifier::TextClassifier;
+use crate::core::classifier::TextClassifier;
 use crate::core::types::DedupStrategy;
+use std::collections::HashMap;
 
 pub struct DeduplicationEngine {
     classifier: TextClassifier,
+    texts: HashMap<String, String>,
 }
 
 impl DeduplicationEngine {
-    pub fn new() -> Self {
+    pub fn new(strategy: DedupStrategy) -> Self {
         Self {
-            classifier: TextClassifier::new(DedupStrategy::default()),
+            classifier: TextClassifier::new(strategy),
+            texts: HashMap::new(),
         }
     }
 
@@ -24,17 +27,17 @@ impl DeduplicationEngine {
         println!("Engine: Processing text: {}", content);
         // Clear existing content before processing new text
         self.classifier.clear();
-        // Return the index where the text was added
-        self.classifier.add_text(content)
+        let id = self.classifier.add_text(content.clone());
+        self.add_text(id.to_string(), content.clone());
+        id
     }
 
-    pub fn get_duplicates(&self) -> Vec<Vec<&str>> {
+    pub fn get_duplicates(&mut self) -> Vec<Vec<String>> {
         let dupes = self.classifier.find_duplicates();
         dupes.iter()
             .map(|group| {
                 group.iter()
                     .filter_map(|&idx| self.classifier.get_text(idx))
-                    .map(|s| s.as_str())
                     .collect()
             })
             .collect()
@@ -46,5 +49,26 @@ impl DeduplicationEngine {
 
     pub fn clear_duplicates(&mut self) {
         self.classifier.clear();
+    }
+
+    pub fn add_text(&mut self, id: String, text: String) -> String {
+        self.texts.insert(id, text.clone());
+        text
+    }
+
+    pub fn get_text(&self, id: &str) -> Option<String> {
+        self.texts.get(id).cloned()
+    }
+
+    pub fn get_texts(&self) -> Vec<String> {
+        self.texts.values().cloned().collect()
+    }
+
+    pub fn get_text_ids(&self) -> Vec<String> {
+        self.texts.keys().cloned().collect()
+    }
+
+    pub fn clear(&mut self) {
+        self.texts.clear();
     }
 }

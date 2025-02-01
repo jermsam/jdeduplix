@@ -1,19 +1,19 @@
 // JDeduplix - A cutting-edge deduplication system
-//! Main library entry point that coordinates all components
-
+//! Main library entry point that coordinates all component
+pub mod core;
 mod commands;
-mod core;
 mod state;
 
-use std::sync::Arc;
-use crate::core::types::DedupStrategy;
-use state::{DedupManager, SystemState, DedupResults};
+use std::sync::{Arc, Mutex};
+use state::DedupManager;
 use once_cell::sync::Lazy;
+use crate::core::types::{DedupStrategy, SimilarityMethod};
 
-type Result<T> = std::result::Result<T, String>;
-
-static DEDUP_MANAGER: Lazy<Arc<DedupManager>> = Lazy::new(|| {
-    Arc::new(DedupManager::new())
+static DEDUP_MANAGER: Lazy<Arc<Mutex<DedupManager>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(DedupManager::new(DedupStrategy {
+        similarity_method: SimilarityMethod::Semantic,
+        ..DedupStrategy::default()
+    })))
 });
 
 // Re-export commands for Tauri
@@ -22,9 +22,9 @@ pub use commands::*;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(DEDUP_MANAGER.clone())  // Register the Mutex-wrapped DedupManager
         .invoke_handler(tauri::generate_handler![
             commands::add_text,
-            commands::find_duplicates,
             commands::get_text,
             commands::clear,
             commands::update_strategy,

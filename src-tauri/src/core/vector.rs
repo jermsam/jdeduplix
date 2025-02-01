@@ -1,5 +1,4 @@
 // Vector indexing components
-pub struct VectorIndex;
 
 use blake3;
 use unicode_normalization::UnicodeNormalization;
@@ -7,6 +6,8 @@ use serde::Serialize;
 use strsim::jaro_winkler;
 use super::types::{SimilarityMethod, DedupStrategy};
 use super::semantic::{SemanticAnalyzer, DocumentVector};
+use std::collections::HashMap;
+use anyhow::Result;
 
 #[derive(Debug, Serialize)]
 pub struct TextVector {
@@ -63,8 +64,8 @@ impl TextVector {
         result
     }
 
-    pub fn prepare_semantic(&mut self, analyzer: &SemanticAnalyzer) {
-        self.doc_vector = Some(analyzer.create_vector(&self.normalized_text));
+    pub fn prepare_semantic(&mut self, analyzer: &mut SemanticAnalyzer) {
+        self.doc_vector = Some(analyzer.encode(&self.normalized_text));
     }
 
     pub fn is_similar(&self, other: &TextVector, threshold: f64) -> bool {
@@ -90,11 +91,11 @@ impl TextVector {
                 jaro_winkler(
                     &self.normalized_text,
                     &other.normalized_text,
-                )
+                ) as f32 as f64
             }
             SimilarityMethod::Semantic => {
                 match (&self.doc_vector, &other.doc_vector) {
-                    (Some(vec1), Some(vec2)) => vec1.cosine_similarity(vec2),
+                    (Some(vec1), Some(vec2)) => calculate_cosine_similarity(vec1, vec2) as f64,
                     _ => 0.0, // If vectors aren't prepared, consider them dissimilar
                 }
             }
@@ -111,6 +112,92 @@ impl TextVector {
 
     pub fn normalized_content(&self) -> &str {
         &self.normalized_text
+    }
+}
+
+// Utility function for cosine similarity calculation
+fn calculate_cosine_similarity(v1: &[f32], v2: &[f32]) -> f32 {
+    if v1.len() != v2.len() || v1.is_empty() {
+        return 0.0;
+    }
+
+    let dot_product: f32 = v1.iter().zip(v2.iter()).map(|(a, b)| a * b).sum();
+    let norm1: f32 = v1.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let norm2: f32 = v2.iter().map(|x| x * x).sum::<f32>().sqrt();
+
+    if norm1 == 0.0 || norm2 == 0.0 {
+        return 0.0;
+    }
+
+    dot_product / (norm1 * norm2)
+}
+
+#[derive(Debug)]
+pub struct VectorStore {
+    analyzer: SemanticAnalyzer,
+    documents: HashMap<String, Document>,
+}
+
+impl VectorStore {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            analyzer: SemanticAnalyzer::new(),
+            documents: HashMap::new(),
+        })
+    }
+
+    pub fn add_document(&mut self, id: String, text: &str) {
+        let mut doc = Document::new(text.to_string());
+        doc.update_vector(&mut self.analyzer);
+        self.documents.insert(id, doc);
+    }
+
+    pub fn find_similar(&self, text: &str, threshold: f32) -> Vec<String> {
+        let mut query_doc = Document::new(text.to_string());
+        query_doc.update_vector(&mut self.analyzer.clone());
+
+        let mut similar_docs = Vec::new();
+        for (id, doc) in &self.documents {
+            let similarity = doc.similarity(&query_doc, &mut self.analyzer.clone());
+            if similarity >= threshold {
+                similar_docs.push(id.clone());
+            }
+        }
+        similar_docs
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct Document {
+    text: String,
+    embedding: Option<Vec<f32>>,
+}
+
+impl Document {
+    pub fn new(text: String) -> Self {
+        Self {
+            text,
+            embedding: None,
+        }
+    }
+
+    pub fn update_vector(&mut self, analyzer: &mut SemanticAnalyzer) {
+        self.embedding = Some(analyzer.encode(&self.text));
+    }
+
+    pub fn similarity(&self, other: &Document, analyzer: &mut SemanticAnalyzer) -> f32 {
+        // Ensure both documents have embeddings
+        let embedding1 = match &self.embedding {
+            Some(e) => e.clone(),
+            None => analyzer.encode(&self.text),
+        };
+        let embedding2 = match &other.embedding {
+            Some(e) => e.clone(),
+            None => analyzer.encode(&other.text),
+        };
+
+        // Use cosine similarity between embeddings
+        calculate_cosine_similarity(&embedding1, &embedding2)
     }
 }
 
@@ -184,5 +271,30 @@ mod tests {
         // Case-insensitive tests
         assert!(hello_upper_insensitive.is_similar(&hello_lower_insensitive, 0.8));
         assert!(hello_upper_insensitive.is_similar(&hello_mixed_insensitive, 0.8));
+    }
+
+    #[test]
+    fn test_vector_store() -> Result<()> {
+        let mut store = VectorStore::new()?;
+        
+        store.add_document("doc1".to_string(), "Hello world");
+        store.add_document("doc2".to_string(), "Hello there");
+        store.add_document("doc3".to_string(), "Something different");
+        
+        let similar = store.find_similar("Hi world", 0.8);
+        assert!(similar.contains(&"doc1".to_string()));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_text_normalization() -> Result<()> {
+        let store = VectorStore::new()?;
+        
+        let text = "Hello World!";
+        let normalized = store.analyzer.normalize_text(text);
+        assert_eq!(normalized, "hello world!");
+        
+        Ok(())
     }
 }
