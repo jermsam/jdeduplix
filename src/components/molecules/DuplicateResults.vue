@@ -1,8 +1,10 @@
 <template>
   <div class="duplicate-results">
   
-    <div v-if="duplicates.length === 0" class="no-results">
-      <p>No duplicates found yet. Start a scan to find duplicate files.</p>
+    <div v-if="duplicates.length === 0" class=" no-results mt-8 flex flex-col items-center justify-center text-center">
+            <CheckCircleIcon class="w-12 h-12 text-green-500 dark:text-green-400" />
+            <h3 class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">No Duplicates Found</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Your text appears to be free of duplicate content.</p>
     </div>
     <div v-else class="results-container">
       <div class="space-y-4">
@@ -28,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 interface DuplicateGroup {
   content: string
   similarity: number
