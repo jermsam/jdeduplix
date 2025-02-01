@@ -1,92 +1,46 @@
 <template>
-  <label class="switch-wrapper" :class="{ disabled }">
-    <input
-      type="checkbox"
-      :checked="modelValue"
-      :disabled="disabled"
-      @change="$emit('update:modelValue', $event.target.checked)"
-    >
-    <span class="switch">
-      <span class="switch-handle"></span>
-    </span>
-    <span v-if="label" class="switch-label">{{ label }}</span>
-  </label>
+  <Switch
+    :modelValue="modelValue"
+    @update:modelValue="(value: boolean) => $emit('update:modelValue', value)"
+    :disabled="disabled"
+    :class="[
+      'relative inline-flex h-6 w-11 items-center rounded-full',
+      modelValue ? 'bg-blue-600' : 'bg-gray-200',
+      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+    ]"
+  >
+    <span class="sr-only">{{ label }}</span>
+    <span
+      :class="[
+        'inline-block h-4 w-4 transform rounded-full bg-white transition',
+        modelValue ? 'translate-x-6' : 'translate-x-1'
+      ]"
+    />
+  </Switch>
+  <span v-if="label" class="ml-3 text-sm">{{ label }}</span>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  modelValue: boolean
-  label?: string
-  disabled?: boolean
-}>()
+import { Switch } from '@headlessui/vue'
 
-defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-}>()
+defineProps({
+  modelValue: {
+    type: Boolean,
+    required: true
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  label: {
+    type: String,
+    default: ''
+  }
+})
+
+defineEmits(['update:modelValue'])
 </script>
 
 <style scoped>
-.switch-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.switch-wrapper.disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  background-color: #e0e0e0;
-  border-radius: 10px;
-  transition: background-color 0.2s;
-}
-
-input:checked + .switch {
-  background-color: #4CAF50;
-}
-
-.switch-handle {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-input:checked + .switch .switch-handle {
-  transform: translateX(16px);
-}
-
-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch-label {
-  font-size: 0.875rem;
-  color: #333;
-  user-select: none;
-}
-
-/* Hover effects */
-.switch-wrapper:not(.disabled):hover .switch {
-  background-color: #d0d0d0;
-}
-
-.switch-wrapper:not(.disabled):hover input:checked + .switch {
-  background-color: #43A047;
-}
+/* Remove any custom styles as HeadlessUI Switch uses Tailwind classes */
 </style>

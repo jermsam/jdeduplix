@@ -14,6 +14,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.2.0
         version: 2.2.0(vue@3.5.13(typescript@5.7.3))
+      '@tauri-apps/api':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-opener':
         specifier: ^2.0.0
         version: 2.2.5
@@ -29,13 +32,13 @@ importers:
       '@tiptap/vue-3':
         specifier: ^2.11.3
         version: 2.11.3(@tiptap/core@2.11.3(@tiptap/pm@2.11.3))(@tiptap/pm@2.11.3)(vue@3.5.13(typescript@5.7.3))
+      '@vueuse/core':
+        specifier: ^12.5.0
+        version: 12.5.0(typescript@5.7.3)
       vue:
         specifier: ^3.4.15
         version: 3.5.13(typescript@5.7.3)
     devDependencies:
-      '@tauri-apps/api':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@tauri-apps/cli':
         specifier: ^2.0.0-rc.18
         version: 2.0.0-rc.18
@@ -695,6 +698,9 @@ packages:
   '@types/mdurl@2.0.0':
     resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
 
+  '@types/web-bluetooth@0.0.20':
+    resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
+
   '@vitejs/plugin-vue@5.2.1':
     resolution: {integrity: sha512-cxh314tzaWwOLqVes2gnnCtvBDcM1UMdn+iFR+UjAn411dPT3tOmqrJjbMd7koZpMAmBM/GqeV4n9ge7JSiJJQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -788,6 +794,15 @@ packages:
 
   '@vue/test-utils@2.4.6':
     resolution: {integrity: sha512-FMxEjOpYNYiFe0GkaHsnJPXFHxQ6m4t8vI/ElPGpMWxZKpmRvQ33OIrvRXemy6yha03RxhOlQuy+gZMC3CQSow==}
+
+  '@vueuse/core@12.5.0':
+    resolution: {integrity: sha512-GVyH1iYqNANwcahAx8JBm6awaNgvR/SwZ1fjr10b8l1HIgDp82ngNbfzJUgOgWEoxjL+URAggnlilAEXwCOZtg==}
+
+  '@vueuse/metadata@12.5.0':
+    resolution: {integrity: sha512-Ui7Lo2a7AxrMAXRF+fAp9QsXuwTeeZ8fIB9wsLHqzq9MQk+2gMYE2IGJW48VMJ8ecvCB3z3GsGLKLbSasQ5Qlg==}
+
+  '@vueuse/shared@12.5.0':
+    resolution: {integrity: sha512-vMpcL1lStUU6O+kdj6YdHDixh0odjPAUM15uJ9f7MY781jcYkIwFA4iv2EfoIPO6vBmvutI1HxxAwmf0cx5ISQ==}
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
@@ -2527,6 +2542,8 @@ snapshots:
 
   '@types/mdurl@2.0.0': {}
 
+  '@types/web-bluetooth@0.0.20': {}
+
   '@vitejs/plugin-vue@5.2.1(vite@5.4.14)(vue@3.5.13(typescript@5.7.3))':
     dependencies:
       vite: 5.4.14
@@ -2675,6 +2692,23 @@ snapshots:
     dependencies:
       js-beautify: 1.15.1
       vue-component-type-helpers: 2.2.0
+
+  '@vueuse/core@12.5.0(typescript@5.7.3)':
+    dependencies:
+      '@types/web-bluetooth': 0.0.20
+      '@vueuse/metadata': 12.5.0
+      '@vueuse/shared': 12.5.0(typescript@5.7.3)
+      vue: 3.5.13(typescript@5.7.3)
+    transitivePeerDependencies:
+      - typescript
+
+  '@vueuse/metadata@12.5.0': {}
+
+  '@vueuse/shared@12.5.0(typescript@5.7.3)':
+    dependencies:
+      vue: 3.5.13(typescript@5.7.3)
+    transitivePeerDependencies:
+      - typescript
 
   abbrev@2.0.0: {}
 
