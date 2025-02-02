@@ -153,15 +153,17 @@
         <button
             v-for="preset in presets"
             :key="preset.name"
-            class="group relative p-4 text-left bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 hover:ring-2 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]"
+            class="group relative p-4 text-left bg-gradient-to-br from-white via-white to-slate-50/80 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/95 rounded-xl ring-1 ring-slate-200/60 dark:ring-gray-800/40 hover:ring-2 hover:ring-indigo-300/60 dark:hover:ring-indigo-300/30 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] transform hover:scale-[1.01] hover:-translate-y-0.5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.01)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] [background-size:16px_16px] backdrop-blur-[2px] backdrop-saturate-105 before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-indigo-100/0 before:to-indigo-100/0 before:transition-colors before:duration-500 hover:before:from-indigo-100/10 hover:before:to-indigo-50/5 dark:before:from-indigo-500/0 dark:before:to-indigo-500/0 dark:hover:before:from-indigo-500/[0.07] dark:hover:before:to-indigo-500/[0.03] before:pointer-events-none"
             :class="{
-            'ring-2 ring-indigo-500 dark:ring-indigo-400 shadow-indigo-500/50 dark:shadow-indigo-400/50': selectedPreset === preset || (
+            'ring-2 ring-indigo-400/80 dark:ring-indigo-300/60 shadow-indigo-200/20 dark:shadow-indigo-300/10 bg-gradient-to-br from-white via-indigo-50/30 to-white dark:from-gray-900 dark:via-indigo-500/[0.07] dark:to-gray-900 scale-[1.01] -translate-y-0.5 before:from-indigo-100/20 before:to-indigo-50/10 dark:before:from-indigo-500/10 dark:before:to-indigo-500/5': selectedPreset === preset || (
               Math.abs(props.strategy.similarity_threshold - preset.settings.similarity_threshold) < 0.01 &&
               props.strategy.case_sensitive === preset.settings.case_sensitive &&
               props.strategy.ignore_whitespace === preset.settings.ignore_whitespace &&
               props.strategy.ignore_punctuation === preset.settings.ignore_punctuation
             ),
-            'bg-indigo-100 border-2 border-indigo-200 dark:bg-indigo-900/30 dark:border dark:border-indigo-800/30': selectedPreset?.name === preset.name
+            'bg-gradient-to-br from-white via-indigo-50/40 to-white dark:from-gray-900 dark:via-indigo-500/[0.09] dark:to-gray-900 border-[1.5px] border-indigo-300/50 dark:border dark:border-indigo-300/20 scale-[1.02] -translate-y-1 before:from-indigo-100/30 before:to-indigo-50/20 dark:before:from-indigo-500/[0.12] dark:before:to-indigo-500/[0.06] shadow-xl shadow-indigo-100/20 dark:shadow-indigo-500/[0.08]': selectedPreset?.name === preset.name,
+            'group-hover:shadow-lg group-hover:shadow-indigo-200/20 dark:group-hover:shadow-indigo-500/10': true,
+            'after:absolute after:inset-0 after:rounded-xl after:ring-1 after:ring-inset after:ring-slate-900/[0.03] dark:after:ring-white/[0.03] after:pointer-events-none': true
           }"
             @click="selectedPreset = preset"
         >
