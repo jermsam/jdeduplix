@@ -182,7 +182,7 @@ export const DEDUP_PRESETS: DedupPreset[] = [
   },
 ];
 
-export const get_default_strategy_by_preset = (name): DedupStrategy => {
+const get_default_strategy_by_preset = (name): DedupStrategy => {
   return DEDUP_PRESETS.find((preset) => preset.name === name).settings
 }
 

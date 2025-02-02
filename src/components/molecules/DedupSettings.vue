@@ -1,7 +1,7 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
   import Slider from '../atoms/Slider.vue';
-  import {DedupStrategy,  DEDUP_PRESETS, get_default_strategy_by_preset} from '../../types/dedup.ts';
+  import {DedupStrategy, DedupPreset, DEDUP_PRESETS} from '../../types/dedup.ts';
   import {ref, watch} from 'vue';
 
 
@@ -16,11 +16,14 @@
 
 
   const presets = DEDUP_PRESETS;
-  const selectedPreset = ref<Preset>(get_default_strategy_by_preset('Exact Match'));
+  const selectedPreset = ref<DedupPreset>();
 
   watch(() => props.strategy, (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-      selectedPreset.value = presets.find((preset) =>  JSON.stringify(preset.settings) === JSON.stringify(newVal))
+      const matchingPreset = presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(newVal));
+      if (matchingPreset) {
+        selectedPreset.value = matchingPreset;
+      }
     }
   }, {immediate: true, deep: true});
 
