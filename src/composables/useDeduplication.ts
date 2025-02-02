@@ -26,6 +26,14 @@ export function useDeduplication() {
             similarityThreshold: newStrategy.similarity_threshold,
             similarityMethod: newStrategy.similarity_method,
             useParallel: newStrategy.use_parallel,
+            ignoreStopwords: newStrategy.ignore_stopwords,
+            stemming: newStrategy.stemming,
+            ngramSize: newStrategy.ngram_size,
+            maxDuplicateCount: newStrategy.max_duplicate_count,
+            languageDetection: newStrategy.language_detection,
+            encodingNormalization: newStrategy.encoding_normalization,
+            similarityWeighting: newStrategy.similarity_weighting,
+            adaptiveThresholding: newStrategy.adaptive_thresholding
           }
         })
         // If we're using semantic similarity, wait a bit for processing
