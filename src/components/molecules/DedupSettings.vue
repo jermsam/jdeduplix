@@ -1,137 +1,144 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
-import { ref } from 'vue'
-import Switch from '../atoms/Switch.vue'
-import Slider from '../atoms/Slider.vue'
-import {ComparisonScope, DedupStrategy, SimilarityMethod, SplitStrategy} from '../../types/dedup.ts';
+  import Slider from '../atoms/Slider.vue';
+  import {ComparisonScope, DedupStrategy, SimilarityMethod, SplitStrategy} from '../../types/dedup.ts';
+  import {ref, watch} from 'vue';
 
 
+  const props = defineProps<{
+    strategy: DedupStrategy
+    isDark?: boolean
+  }>();
 
-const props = defineProps<{
-  strategy: DedupStrategy
-  isDark?: boolean
-}>()
+  const emit = defineEmits<{
+    (e: 'update:strategy', value: DedupStrategy): void
+  }>();
 
-const emit = defineEmits<{
-  (e: 'update:strategy', value: DedupStrategy): void
-}>()
-
-type Preset = {
-  name: string
-  description: string
-  settings: DedupStrategy
-}
-
-const presets: Preset[] = [
-  {
-    name: 'Exact Match',
-    description: 'Find identical text, including spacing and punctuation',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: false,
-      normalize_unicode: false,
-      split_strategy: SplitStrategy.Words,
-      comparison_scope: ComparisonScope.Global,
-      min_length: 10,
-      similarity_threshold: 0.95,
-      similarity_method: SimilarityMethod.Exact,
-      use_parallel: true,
-    }
-  },
-  {
-    name: 'Near Match',
-    description: 'Find text with minor formatting differences',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: false,
-      normalize_unicode: false,
-      split_strategy: SplitStrategy.Words,
-      comparison_scope: ComparisonScope.Global,
-      min_length: 10,
-      similarity_threshold: 0.8,  // or adjust as needed (0.7, 0.85, etc.)
-      similarity_method: SimilarityMethod.Fuzzy,
-      use_parallel: true,
-    }
-  },
-  {
-    name: 'Fuzzy Match',
-    description: 'Find text with typos and small variations',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: false,
-      normalize_unicode: false,
-      split_strategy: SplitStrategy.Sentences,
-      comparison_scope: ComparisonScope.Global,
-      min_length: 5,
-      similarity_threshold: 0.7,  // Lower threshold allows more partial matching
-      similarity_method: SimilarityMethod.Fuzzy,
-      use_parallel: true,
-    }
-  },
-  {
-    name: 'Similar Ideas',
-    description: 'Find text expressing similar concepts',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: true,
-      normalize_unicode: true,
-      split_strategy: SplitStrategy.Paragraphs,      // or SplitStrategy.Sentences
-      comparison_scope: ComparisonScope.Global,
-      min_length: 10,
-      similarity_threshold: 0.8,                    // medium-high threshold
-      similarity_method: SimilarityMethod.Semantic, // uses ML or embedding-based similarity
-      use_parallel: true,
-    }
-  },
-  {
-    name: 'Strict Large Blocks',
-    description: 'Looks for large duplicated character sequences (useful for code or logs)',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: false,
-      ignore_punctuation: false,
-      normalize_unicode: false,
-      split_strategy: SplitStrategy.Characters,
-      comparison_scope: ComparisonScope.Global,
-      min_length: 50,            // large chunk size
-      similarity_threshold: 0.9, // fairly high threshold
-      similarity_method: SimilarityMethod.Exact,
-      use_parallel: true,
-    }
-  },
-  {
-    name: 'Loose Paragraph Matching',
-    description: 'Groups paragraphs that share a high-level similarity or partial overlap',
-    settings: {
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: true,
-      normalize_unicode: false,
-      split_strategy: SplitStrategy.Paragraphs,
-      comparison_scope: ComparisonScope.Global,
-      min_length: 20,                      // Larger min length since we match paragraphs
-      similarity_threshold: 0.65,          // Lower threshold to catch partial overlap
-      similarity_method: SimilarityMethod.Fuzzy,
-      use_parallel: true,
-    }
+  type Preset = {
+    name: string
+    description: string
+    settings: DedupStrategy
   }
-]
+
+  const presets: Preset[] = [
+    {
+      name: 'Exact Match',
+      description: 'Find identical text, including spacing and punctuation',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: true,
+        ignore_punctuation: false,
+        normalize_unicode: false,
+        split_strategy: SplitStrategy.Words,
+        comparison_scope: ComparisonScope.Global,
+        min_length: 10,
+        similarity_threshold: 0.95,
+        similarity_method: SimilarityMethod.Exact,
+        use_parallel: true,
+      },
+    },
+    {
+      name: 'Near Match',
+      description: 'Find text with minor formatting differences',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: true,
+        ignore_punctuation: false,
+        normalize_unicode: false,
+        split_strategy: SplitStrategy.Words,
+        comparison_scope: ComparisonScope.Global,
+        min_length: 10,
+        similarity_threshold: 0.8,  // or adjust as needed (0.7, 0.85, etc.)
+        similarity_method: SimilarityMethod.Fuzzy,
+        use_parallel: true,
+      },
+    },
+    {
+      name: 'Fuzzy Match',
+      description: 'Find text with typos and small variations',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: true,
+        ignore_punctuation: false,
+        normalize_unicode: false,
+        split_strategy: SplitStrategy.Sentences,
+        comparison_scope: ComparisonScope.Global,
+        min_length: 5,
+        similarity_threshold: 0.7,  // Lower threshold allows more partial matching
+        similarity_method: SimilarityMethod.Fuzzy,
+        use_parallel: true,
+      },
+    },
+    {
+      name: 'Similar Ideas',
+      description: 'Find text expressing similar concepts',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: true,
+        ignore_punctuation: true,
+        normalize_unicode: true,
+        split_strategy: SplitStrategy.Paragraphs,      // or SplitStrategy.Sentences
+        comparison_scope: ComparisonScope.Global,
+        min_length: 10,
+        similarity_threshold: 0.8,                    // medium-high threshold
+        similarity_method: SimilarityMethod.Semantic, // uses ML or embedding-based similarity
+        use_parallel: true,
+      },
+    },
+    {
+      name: 'Strict Large Blocks',
+      description: 'Looks for large duplicated character sequences (useful for code or logs)',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: false,
+        ignore_punctuation: false,
+        normalize_unicode: false,
+        split_strategy: SplitStrategy.Characters,
+        comparison_scope: ComparisonScope.Global,
+        min_length: 50,            // large chunk size
+        similarity_threshold: 0.9, // fairly high threshold
+        similarity_method: SimilarityMethod.Exact,
+        use_parallel: true,
+      },
+    },
+    {
+      name: 'Loose Paragraph Matching',
+      description: 'Groups paragraphs that share a high-level similarity or partial overlap',
+      settings: {
+        case_sensitive: false,
+        ignore_whitespace: true,
+        ignore_punctuation: true,
+        normalize_unicode: false,
+        split_strategy: SplitStrategy.Paragraphs,
+        comparison_scope: ComparisonScope.Global,
+        min_length: 20,                      // Larger min length since we match paragraphs
+        similarity_threshold: 0.65,          // Lower threshold to catch partial overlap
+        similarity_method: SimilarityMethod.Fuzzy,
+        use_parallel: true,
+      },
+    },
+  ];
+
+  const selectedPreset = ref<Preset>();
+
+  watch(() => props.strategy, (newVal, oldVal) => {
+    if (newVal && newVal !== oldVal) {
+      selectedPreset.value = presets.find((preset) =>  JSON.stringify(preset.settings) === JSON.stringify(newVal))
+    }
+  }, {immediate: true, deep: true});
 
 
-function updateStrategy(key: keyof DedupStrategy, value: any) {
-  emit('update:strategy', {
-    ...props.strategy,
-    [key]: value
-  })
-}
+  function updateStrategy(key: keyof DedupStrategy, value: any) {
+    emit('update:strategy', {
+      ...props.strategy,
+      [key]: value,
+    });
+  }
 
-function setPreset(preset: any) {
-  emit('update:strategy', { ...preset.settings })
-}
+  function setPreset(preset: any) {
+    emit('update:strategy', {...preset.settings});
+  }
+  watch(selectedPreset, setPreset)
 </script>
 
 <template>
@@ -143,23 +150,23 @@ function setPreset(preset: any) {
         <div class="text-xs text-slate-500 dark:text-gray-400">Select how you want to find duplicates</div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button 
-          v-for="preset in presets" 
-          :key="preset.name"
-          class="group relative p-4 text-left bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 hover:ring-2 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]"
-          :class="{ 
+        <button
+            v-for="preset in presets"
+            :key="preset.name"
+            class="group relative p-4 text-left bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 hover:ring-2 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]"
+            :class="{
             'ring-2 ring-indigo-500 dark:ring-indigo-400': 
               Math.abs(props.strategy.similarity_threshold - preset.settings.similarity_threshold) < 0.01 &&
               props.strategy.case_sensitive === preset.settings.case_sensitive &&
               props.strategy.ignore_whitespace === preset.settings.ignore_whitespace &&
               props.strategy.ignore_punctuation === preset.settings.ignore_punctuation
           }"
-          @click="setPreset(preset)"
+            @click="selectedPreset = preset"
         >
           <div class="flex items-center justify-between mb-2">
             <div class="text-sm font-medium text-slate-800 dark:text-gray-100">{{ preset.name }}</div>
-            <div class="px-2 py-0.5 text-xs font-medium rounded-full" 
-              :class="{
+            <div class="px-2 py-0.5 text-xs font-medium rounded-full"
+                 :class="{
                 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400': preset.settings.similarity_threshold >= 0.95,
                 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': preset.settings.similarity_threshold >= 0.85 && preset.settings.similarity_threshold < 0.95,
                 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': preset.settings.similarity_threshold < 0.85
@@ -170,19 +177,20 @@ function setPreset(preset: any) {
           </div>
           <div class="text-xs text-slate-500 dark:text-gray-400 mb-3">{{ preset.description }}</div>
           <div class="flex flex-wrap gap-1.5">
-            <span v-if="preset.settings.case_sensitive" 
-              class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Case Sensitive</span>
-            <span v-if="!preset.settings.ignore_whitespace" 
-              class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Exact Spacing</span>
-            <span v-if="!preset.settings.ignore_punctuation" 
-              class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Exact Punctuation</span>
+            <span v-if="preset.settings.case_sensitive"
+                  class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Case Sensitive</span>
+            <span v-if="!preset.settings.ignore_whitespace"
+                  class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Exact Spacing</span>
+            <span v-if="!preset.settings.ignore_punctuation"
+                  class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 rounded-full">Exact Punctuation</span>
           </div>
         </button>
       </div>
     </div>
 
     <!-- Advanced Settings -->
-    <div class="space-y-4 bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 p-4 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]">
+    <div
+        class="space-y-4 bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 p-4 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]">
       <div class="flex items-center justify-between">
         <div class="text-sm font-medium text-slate-800 dark:text-gray-100">Advanced Settings</div>
         <div class="text-xs text-slate-500 dark:text-gray-400">Fine-tune your matching preferences</div>
@@ -194,9 +202,9 @@ function setPreset(preset: any) {
             Similarity Threshold: {{ (props.strategy.similarity_threshold * 100).toFixed() }}%
           </label>
           <Slider
-            v-model="props.strategy.similarity_threshold"
-            label="Similarity Threshold"
-            @update:modelValue="updateStrategy('similarity_threshold', $event)"
+              v-model="props.strategy.similarity_threshold"
+              label="Similarity Threshold"
+              @update:modelValue="updateStrategy('similarity_threshold', $event)"
           />
         </div>
 
@@ -204,13 +212,13 @@ function setPreset(preset: any) {
           <div class="flex items-center justify-between">
             <label class="text-sm text-slate-600 dark:text-gray-300">Case Sensitive</label>
             <button
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
-              :class="props.strategy.case_sensitive ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
-              @click="updateStrategy('case_sensitive', !props.strategy.case_sensitive)"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+                :class="props.strategy.case_sensitive ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
+                @click="updateStrategy('case_sensitive', !props.strategy.case_sensitive)"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
-                :class="props.strategy.case_sensitive ? 'translate-x-6' : 'translate-x-1'"
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
+                  :class="props.strategy.case_sensitive ? 'translate-x-6' : 'translate-x-1'"
               />
             </button>
           </div>
@@ -218,13 +226,13 @@ function setPreset(preset: any) {
           <div class="flex items-center justify-between">
             <label class="text-sm text-slate-600 dark:text-gray-300">Ignore Whitespace</label>
             <button
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
-              :class="props.strategy.ignore_whitespace ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
-              @click="updateStrategy('ignore_whitespace', !props.strategy.ignore_whitespace)"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+                :class="props.strategy.ignore_whitespace ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
+                @click="updateStrategy('ignore_whitespace', !props.strategy.ignore_whitespace)"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
-                :class="props.strategy.ignore_whitespace ? 'translate-x-6' : 'translate-x-1'"
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
+                  :class="props.strategy.ignore_whitespace ? 'translate-x-6' : 'translate-x-1'"
               />
             </button>
           </div>
@@ -232,13 +240,13 @@ function setPreset(preset: any) {
           <div class="flex items-center justify-between">
             <label class="text-sm text-slate-600 dark:text-gray-300">Ignore Punctuation</label>
             <button
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
-              :class="props.strategy.ignore_punctuation ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
-              @click="updateStrategy('ignore_punctuation', !props.strategy.ignore_punctuation)"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+                :class="props.strategy.ignore_punctuation ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-gray-700'"
+                @click="updateStrategy('ignore_punctuation', !props.strategy.ignore_punctuation)"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
-                :class="props.strategy.ignore_punctuation ? 'translate-x-6' : 'translate-x-1'"
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
+                  :class="props.strategy.ignore_punctuation ? 'translate-x-6' : 'translate-x-1'"
               />
             </button>
           </div>
@@ -249,66 +257,66 @@ function setPreset(preset: any) {
 </template>
 
 <style scoped>
-input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  outline: none;
-}
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+  }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-}
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+  }
 
-.slider-dark {
-  background: #282B33;
-}
+  .slider-dark {
+    background: #282B33;
+  }
 
-.slider-dark::-webkit-slider-thumb {
-  background: #6366F1;
-  border: 2px solid #1E2128;
-}
+  .slider-dark::-webkit-slider-thumb {
+    background: #6366F1;
+    border: 2px solid #1E2128;
+  }
 
-.slider-dark::-webkit-slider-thumb:hover {
-  background: #818CF8;
-}
+  .slider-dark::-webkit-slider-thumb:hover {
+    background: #818CF8;
+  }
 
-.slider-light {
-  background: #E5E7EB;
-}
+  .slider-light {
+    background: #E5E7EB;
+  }
 
-.slider-light::-webkit-slider-thumb {
-  background: #6366F1;
-  border: 2px solid white;
-}
+  .slider-light::-webkit-slider-thumb {
+    background: #6366F1;
+    border: 2px solid white;
+  }
 
-.slider-light::-webkit-slider-thumb:hover {
-  background: #818CF8;
-}
+  .slider-light::-webkit-slider-thumb:hover {
+    background: #818CF8;
+  }
 
-.preset-button {
-  @apply py-3 px-4 rounded-lg text-left transition-all duration-200 hover:shadow-md;
-}
+  .preset-button {
+    @apply py-3 px-4 rounded-lg text-left transition-all duration-200 hover:shadow-md;
+  }
 
-.preset-button-active {
-  @apply bg-brand-primary text-white shadow-sm;
-}
+  .preset-button-active {
+    @apply bg-brand-primary text-white shadow-sm;
+  }
 
-.preset-button-inactive {
-  @apply bg-theme-bg-surface-light dark:bg-theme-bg-surface-dark text-theme-text-primary-light dark:text-theme-text-primary-dark hover:bg-theme-bg-elevated-light dark:hover:bg-theme-bg-elevated-dark;
-}
+  .preset-button-inactive {
+    @apply bg-theme-bg-surface-light dark:bg-theme-bg-surface-dark text-theme-text-primary-light dark:text-theme-text-primary-dark hover:bg-theme-bg-elevated-light dark:hover:bg-theme-bg-elevated-dark;
+  }
 
-.card {
-  @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark rounded-xl border border-theme-border-light dark:border-theme-border-dark shadow-surface-light dark:shadow-surface-dark;
-}
+  .card {
+    @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark rounded-xl border border-theme-border-light dark:border-theme-border-dark shadow-surface-light dark:shadow-surface-dark;
+  }
 
-.card-header {
-  @apply p-4 border-b border-theme-border-light dark:border-theme-border-dark;
-}
+  .card-header {
+    @apply p-4 border-b border-theme-border-light dark:border-theme-border-dark;
+  }
 </style>
