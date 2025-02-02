@@ -3,14 +3,9 @@
 import { ref } from 'vue'
 import Switch from '../atoms/Switch.vue'
 import Slider from '../atoms/Slider.vue'
+import {ComparisonScope, DedupStrategy, SimilarityMethod, SplitStrategy} from '../../types/dedup.ts';
 
-interface DedupStrategy {
-  similarity_threshold: number
-  case_sensitive: boolean
-  ignore_whitespace: boolean
-  ignore_punctuation: boolean
-  [key: string]: any
-}
+
 
 const props = defineProps<{
   strategy: DedupStrategy
@@ -21,105 +16,111 @@ const emit = defineEmits<{
   (e: 'update:strategy', value: DedupStrategy): void
 }>()
 
-const showAdvanced = ref(false)
+type Preset = {
+  name: string
+  description: string
+  settings: DedupStrategy
+}
 
-const presets = [
+const presets: Preset[] = [
   {
     name: 'Exact Match',
     description: 'Find identical text, including spacing and punctuation',
     settings: {
-      similarity_threshold: 1.0,
-      case_sensitive: true,
-      ignore_whitespace: false,
-      ignore_punctuation: false
+      case_sensitive: false,
+      ignore_whitespace: true,
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Words,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 10,
+      similarity_threshold: 0.95,
+      similarity_method: SimilarityMethod.Exact,
+      use_parallel: true,
     }
   },
   {
     name: 'Near Match',
     description: 'Find text with minor formatting differences',
     settings: {
-      similarity_threshold: 0.95,
       case_sensitive: false,
       ignore_whitespace: true,
-      ignore_punctuation: false
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Words,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 10,
+      similarity_threshold: 0.8,  // or adjust as needed (0.7, 0.85, etc.)
+      similarity_method: SimilarityMethod.Fuzzy,
+      use_parallel: true,
     }
   },
   {
     name: 'Fuzzy Match',
     description: 'Find text with typos and small variations',
     settings: {
-      similarity_threshold: 0.85,
       case_sensitive: false,
       ignore_whitespace: true,
-      ignore_punctuation: true
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Sentences,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 5,
+      similarity_threshold: 0.7,  // Lower threshold allows more partial matching
+      similarity_method: SimilarityMethod.Fuzzy,
+      use_parallel: true,
     }
   },
   {
     name: 'Similar Ideas',
     description: 'Find text expressing similar concepts',
     settings: {
-      similarity_threshold: 0.75,
       case_sensitive: false,
       ignore_whitespace: true,
-      ignore_punctuation: true
+      ignore_punctuation: true,
+      normalize_unicode: true,
+      split_strategy: SplitStrategy.Paragraphs,      // or SplitStrategy.Sentences
+      comparison_scope: ComparisonScope.Global,
+      min_length: 10,
+      similarity_threshold: 0.8,                    // medium-high threshold
+      similarity_method: SimilarityMethod.Semantic, // uses ML or embedding-based similarity
+      use_parallel: true,
     }
   },
   {
-    name: 'Quoted Text',
-    description: 'Find matching quotes and citations',
+    name: 'Strict Large Blocks',
+    description: 'Looks for large duplicated character sequences (useful for code or logs)',
     settings: {
-      similarity_threshold: 0.90,
-      case_sensitive: true,
-      ignore_whitespace: true,
-      ignore_punctuation: false
+      case_sensitive: false,
+      ignore_whitespace: false,
+      ignore_punctuation: false,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Characters,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 50,            // large chunk size
+      similarity_threshold: 0.9, // fairly high threshold
+      similarity_method: SimilarityMethod.Exact,
+      use_parallel: true,
     }
   },
   {
-    name: 'List Items',
-    description: 'Find duplicate entries in lists or bullet points',
+    name: 'Loose Paragraph Matching',
+    description: 'Groups paragraphs that share a high-level similarity or partial overlap',
     settings: {
-      similarity_threshold: 0.85,
       case_sensitive: false,
       ignore_whitespace: true,
-      ignore_punctuation: true
-    }
-  },
-  {
-    name: 'Paragraphs',
-    description: 'Find duplicate paragraphs and sections',
-    settings: {
-      similarity_threshold: 0.80,
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: true
-    }
-  },
-  {
-    name: 'Sentences',
-    description: 'Find repeated sentences and phrases',
-    settings: {
-      similarity_threshold: 0.90,
-      case_sensitive: false,
-      ignore_whitespace: true,
-      ignore_punctuation: false
+      ignore_punctuation: true,
+      normalize_unicode: false,
+      split_strategy: SplitStrategy.Paragraphs,
+      comparison_scope: ComparisonScope.Global,
+      min_length: 20,                      // Larger min length since we match paragraphs
+      similarity_threshold: 0.65,          // Lower threshold to catch partial overlap
+      similarity_method: SimilarityMethod.Fuzzy,
+      use_parallel: true,
     }
   }
 ]
 
-const toggles = [
-  {
-    key: 'case_sensitive',
-    label: 'Case Sensitive'
-  },
-  {
-    key: 'ignore_whitespace',
-    label: 'Ignore Whitespace'
-  },
-  {
-    key: 'ignore_punctuation',
-    label: 'Ignore Punctuation'
-  }
-]
 
 function updateStrategy(key: keyof DedupStrategy, value: any) {
   emit('update:strategy', {

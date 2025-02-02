@@ -15,12 +15,11 @@ export const DEFAULT_STRATEGY: DedupStrategy = {
   ignore_whitespace: true,
   ignore_punctuation: false,
   normalize_unicode: false,
-  split_strategy: SplitStrategy.WholeText,
+  split_strategy: SplitStrategy.Words,
   comparison_scope: ComparisonScope.Global,
-  min_length: 5,
-  similarity_threshold: 0.15,
-  similarity_method: SimilarityMethod.Semantic,
-  use_parallel: false
+  min_length: 10,
+  similarity_threshold: 0.95,
+  similarity_method: SimilarityMethod.Exact,
+  use_parallel: true,
 }
-
 
