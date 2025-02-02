@@ -2,8 +2,9 @@ import {z} from 'zod';
 import {DedupStrategySchema, DuplicateGroupSchema, DuplicateResultSchema, DuplicateStatsSchema, SimilarityWeightsSchema} from './schemas';
 import {SplitStrategy, ComparisonScope, SimilarityMethod} from './enums'
 
-
-
+/**
+ * Types for deduplication
+ */
 
 export type DedupStrategy = z.infer<typeof DedupStrategySchema>;
 export type DuplicateGroup = z.infer<typeof DuplicateGroupSchema>;
@@ -12,6 +13,7 @@ export type DuplicateResult = z.infer<typeof DuplicateResultSchema>;
 export type SimilarityWeights = z.infer<typeof SimilarityWeightsSchema>;
 
 export {SplitStrategy, ComparisonScope, SimilarityMethod};
+
 export const DEFAULT_STRATEGY: DedupStrategy = {
   case_sensitive: false,
   ignore_whitespace: true,
@@ -29,10 +31,11 @@ export const DEFAULT_STRATEGY: DedupStrategy = {
   max_duplicate_count: undefined,
   language_detection: false,
   encoding_normalization: true,
+  // Balanced configuration that works well for general purpose deduplication
   similarity_weighting: {
-    frequency: 0.5,  // Most important - how often terms appear
-    position: 0.3,   // Second - where terms appear in the text
-    context: 0.2     // Third - surrounding context of terms
+    frequency: 0.4,  // Moderate emphasis on word frequency
+    position: 0.4,   // Moderate emphasis on word order
+    context: 0.2     // Light emphasis on semantic meaning
   },
   adaptive_thresholding: false
 }

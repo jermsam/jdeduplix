@@ -16,4 +16,3 @@ export enum SimilarityMethod {
   Fuzzy = 'Fuzzy',
   Semantic = 'Semantic'
 }
-

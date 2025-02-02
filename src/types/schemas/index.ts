@@ -2,34 +2,65 @@ import { z } from 'zod';
 import {ComparisonScope, SimilarityMethod, SplitStrategy} from '../enums';
 
 // 1) Zod schemas for enums
-//
 export const SplitStrategySchema = z.nativeEnum(SplitStrategy);
 export const ComparisonScopeSchema = z.nativeEnum(ComparisonScope);
 export const SimilarityMethodSchema = z.nativeEnum(SimilarityMethod);
 
-
 /**
- * Weights for different aspects of similarity comparison.
- * All weights must sum to 1.0
+ * Configuration for similarity weights used in deduplication.
+ * The weights determine how different aspects of text comparison contribute to the overall similarity score.
+ * All weights must sum to 1.0 to ensure consistent scoring.
+ * 
+ * @example
+ * // Equal importance to all aspects
+ * { frequency: 0.33, position: 0.33, context: 0.34 }
+ * 
+ * // Emphasize semantic meaning with some consideration for word order
+ * { frequency: 0.0, position: 0.3, context: 0.7 }
  */
 export const SimilarityWeightsSchema = z.object({
-    /** Weight for term frequency in similarity calculation */
+  /**
+   * Weight for term frequency comparison (0.0 to 1.0)
+   * Higher values emphasize matching based on how often words appear, regardless of their order.
+   * Effective for:
+   * - Finding documents with similar vocabulary
+   * - Detecting keyword stuffing
+   * - Comparing technical documentation
+   */
   frequency: z.number().min(0).max(1),
-   /** Weight for term position/order in similarity calculation */
+
+  /**
+   * Weight for positional comparison (0.0 to 1.0)
+   * Higher values emphasize matching based on word order and structure.
+   * Effective for:
+   * - Finding near-exact duplicates
+   * - Comparing structured text (code, logs)
+   * - Detecting copied content with minor changes
+   */
   position: z.number().min(0).max(1),
-    /** Weight for surrounding context in similarity calculation */
+
+  /**
+   * Weight for semantic context comparison (0.0 to 1.0)
+   * Higher values emphasize matching based on meaning rather than exact wording.
+   * Effective for:
+   * - Finding paraphrased content
+   * - Detecting AI-generated variations
+   * - Comparing content in different writing styles
+   */
   context: z.number().min(0).max(1)
-}).refine((data) => {
-  const sum = data.frequency + data.position + data.context;
-  return Math.abs(sum - 1.0) < 0.000001; // Allow for floating point imprecision
-}, {
-  message: "Similarity weights must sum to 1.0"
-});
+}).refine(
+  (weights) => {
+    const sum = weights.frequency + weights.position + weights.context;
+    return Math.abs(sum - 1.0) < 0.001; // Allow small floating-point differences
+  },
+  {
+    message: "Weights must sum to 1.0"
+  }
+);
 
 //
 // 2) Zod schema for DedupStrategy
 //
-
 export const DedupStrategySchema = z.object({
   case_sensitive: z.boolean(),
   ignore_whitespace: z.boolean(),
