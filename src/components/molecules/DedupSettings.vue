@@ -155,11 +155,13 @@
             :key="preset.name"
             class="group relative p-4 text-left bg-white dark:bg-gray-900 rounded-xl ring-1 ring-slate-200 dark:ring-gray-800 hover:ring-2 hover:ring-indigo-500/50 dark:hover:ring-indigo-400/50 transition-all duration-200 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05),0_2px_3px_-3px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.3),0_2px_3px_-3px_rgba(0,0,0,0.2)] [background-image:radial-gradient(rgba(0,0,0,0.015)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] [background-size:16px_16px]"
             :class="{
-            'ring-2 ring-indigo-500 dark:ring-indigo-400': 
+            'ring-2 ring-indigo-500 dark:ring-indigo-400 shadow-indigo-500/50 dark:shadow-indigo-400/50': selectedPreset === preset || (
               Math.abs(props.strategy.similarity_threshold - preset.settings.similarity_threshold) < 0.01 &&
               props.strategy.case_sensitive === preset.settings.case_sensitive &&
               props.strategy.ignore_whitespace === preset.settings.ignore_whitespace &&
               props.strategy.ignore_punctuation === preset.settings.ignore_punctuation
+            ),
+            'bg-indigo-100 border-2 border-indigo-200 dark:bg-indigo-900/30 dark:border dark:border-indigo-800/30': selectedPreset?.name === preset.name
           }"
             @click="selectedPreset = preset"
         >
