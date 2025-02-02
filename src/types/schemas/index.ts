@@ -82,6 +82,12 @@ export const DedupStrategySchema = z.object({
   adaptive_thresholding: z.boolean()
 });
 
+export const DedupPresetsSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  settings: DedupStrategySchema
+})
+
 //
 // 3) Zod schema for DuplicateGroup
 //

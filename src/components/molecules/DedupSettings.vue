@@ -1,7 +1,7 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
   import Slider from '../atoms/Slider.vue';
-  import {ComparisonScope, DedupStrategy, SimilarityMethod, SplitStrategy} from '../../types/dedup.ts';
+  import {DedupStrategy,  DEDUP_PRESETS, get_default_strategy_by_preset} from '../../types/dedup.ts';
   import {ref, watch} from 'vue';
 
 
@@ -14,112 +14,9 @@
     (e: 'update:strategy', value: DedupStrategy): void
   }>();
 
-  type Preset = {
-    name: string
-    description: string
-    settings: DedupStrategy
-  }
 
-  const presets: Preset[] = [
-    {
-      name: 'Exact Match',
-      description: 'Find identical text, including spacing and punctuation',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: true,
-        ignore_punctuation: false,
-        normalize_unicode: false,
-        split_strategy: SplitStrategy.Words,
-        comparison_scope: ComparisonScope.Global,
-        min_length: 10,
-        similarity_threshold: 0.95,
-        similarity_method: SimilarityMethod.Exact,
-        use_parallel: true,
-      },
-    },
-    {
-      name: 'Near Match',
-      description: 'Find text with minor formatting differences',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: true,
-        ignore_punctuation: false,
-        normalize_unicode: false,
-        split_strategy: SplitStrategy.Words,
-        comparison_scope: ComparisonScope.Global,
-        min_length: 10,
-        similarity_threshold: 0.8,  // or adjust as needed (0.7, 0.85, etc.)
-        similarity_method: SimilarityMethod.Fuzzy,
-        use_parallel: true,
-      },
-    },
-    {
-      name: 'Fuzzy Match',
-      description: 'Find text with typos and small variations',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: true,
-        ignore_punctuation: false,
-        normalize_unicode: false,
-        split_strategy: SplitStrategy.Sentences,
-        comparison_scope: ComparisonScope.Global,
-        min_length: 5,
-        similarity_threshold: 0.7,  // Lower threshold allows more partial matching
-        similarity_method: SimilarityMethod.Fuzzy,
-        use_parallel: true,
-      },
-    },
-    {
-      name: 'Similar Ideas',
-      description: 'Find text expressing similar concepts',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: true,
-        ignore_punctuation: true,
-        normalize_unicode: true,
-        split_strategy: SplitStrategy.Paragraphs,      // or SplitStrategy.Sentences
-        comparison_scope: ComparisonScope.Global,
-        min_length: 10,
-        similarity_threshold: 0.8,                    // medium-high threshold
-        similarity_method: SimilarityMethod.Semantic, // uses ML or embedding-based similarity
-        use_parallel: true,
-      },
-    },
-    {
-      name: 'Strict Large Blocks',
-      description: 'Looks for large duplicated character sequences (useful for code or logs)',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: false,
-        ignore_punctuation: false,
-        normalize_unicode: false,
-        split_strategy: SplitStrategy.Characters,
-        comparison_scope: ComparisonScope.Global,
-        min_length: 50,            // large chunk size
-        similarity_threshold: 0.9, // fairly high threshold
-        similarity_method: SimilarityMethod.Exact,
-        use_parallel: true,
-      },
-    },
-    {
-      name: 'Loose Paragraph Matching',
-      description: 'Groups paragraphs that share a high-level similarity or partial overlap',
-      settings: {
-        case_sensitive: false,
-        ignore_whitespace: true,
-        ignore_punctuation: true,
-        normalize_unicode: false,
-        split_strategy: SplitStrategy.Paragraphs,
-        comparison_scope: ComparisonScope.Global,
-        min_length: 20,                      // Larger min length since we match paragraphs
-        similarity_threshold: 0.65,          // Lower threshold to catch partial overlap
-        similarity_method: SimilarityMethod.Fuzzy,
-        use_parallel: true,
-      },
-    },
-  ];
-
-  const selectedPreset = ref<Preset>();
+  const presets = DEDUP_PRESETS;
+  const selectedPreset = ref<Preset>(get_default_strategy_by_preset('Exact Match'));
 
   watch(() => props.strategy, (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
@@ -276,51 +173,5 @@
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.15s ease-in-out;
-  }
-
-  .slider-dark {
-    background: #282B33;
-  }
-
-  .slider-dark::-webkit-slider-thumb {
-    background: #6366F1;
-    border: 2px solid #1E2128;
-  }
-
-  .slider-dark::-webkit-slider-thumb:hover {
-    background: #818CF8;
-  }
-
-  .slider-light {
-    background: #E5E7EB;
-  }
-
-  .slider-light::-webkit-slider-thumb {
-    background: #6366F1;
-    border: 2px solid white;
-  }
-
-  .slider-light::-webkit-slider-thumb:hover {
-    background: #818CF8;
-  }
-
-  .preset-button {
-    @apply py-3 px-4 rounded-lg text-left transition-all duration-200 hover:shadow-md;
-  }
-
-  .preset-button-active {
-    @apply bg-brand-primary text-white shadow-sm;
-  }
-
-  .preset-button-inactive {
-    @apply bg-theme-bg-surface-light dark:bg-theme-bg-surface-dark text-theme-text-primary-light dark:text-theme-text-primary-dark hover:bg-theme-bg-elevated-light dark:hover:bg-theme-bg-elevated-dark;
-  }
-
-  .card {
-    @apply bg-theme-bg-base-light dark:bg-theme-bg-base-dark rounded-xl border border-theme-border-light dark:border-theme-border-dark shadow-surface-light dark:shadow-surface-dark;
-  }
-
-  .card-header {
-    @apply p-4 border-b border-theme-border-light dark:border-theme-border-dark;
   }
 </style>
