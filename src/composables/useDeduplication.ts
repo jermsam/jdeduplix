@@ -53,7 +53,6 @@ export function useDeduplication() {
 
   const findDuplicates = async (text: string) => {
     try {
-      await loadSavedStrategy()
       // If we're updating the strategy, wait for it to finish
       if (isUpdatingStrategy.value) {
         await new Promise(resolve => setTimeout(resolve, 100))

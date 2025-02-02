@@ -1,17 +1,17 @@
 <template>
   <div class="relative group">
-    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/5 dark:to-purple-500/5 rounded-2xl blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/[0.02] dark:to-purple-500/[0.02] rounded-2xl blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
     <div class="relative">
       <div class="absolute top-3 inset-x-3 flex items-center justify-between z-10">
         <div class="flex items-center space-x-3">
-          <div class="flex space-x-1.5 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
-            <div class="w-3 h-3 rounded-full bg-red-400 dark:bg-red-500" />
-            <div class="w-3 h-3 rounded-full bg-amber-400 dark:bg-amber-500" />
-            <div class="w-3 h-3 rounded-full bg-green-400 dark:bg-green-500" />
+          <div class="flex space-x-1.5 p-2 bg-slate-50/80 dark:bg-slate-800/80 rounded-lg shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-400/90 dark:bg-red-500/90" />
+            <div class="w-2.5 h-2.5 rounded-full bg-amber-400/90 dark:bg-amber-500/90" />
+            <div class="w-2.5 h-2.5 rounded-full bg-green-400/90 dark:bg-green-500/90" />
           </div>
-          <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Editor</span>
+          <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Editor</span>
         </div>
-        <div class="flex items-center divide-x divide-slate-200 dark:divide-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
+        <div class="flex items-center divide-x divide-slate-200/70 dark:divide-slate-700/70 bg-slate-50/80 dark:bg-slate-800/80 rounded-lg shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
           <button
               @click="addTestText"
               class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
