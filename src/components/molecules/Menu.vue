@@ -2,11 +2,12 @@
 <template>
   <header class="mb-6">
     <nav class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
+      <div class="flex flex-col">
         <div class="relative inline-flex items-center">
           <h1 class="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-400 dark:to-purple-500">Jdeduplix</h1>
           <span class="ml-2 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-full">Alpha</span>
         </div>
+        <Text>Precise Deduplication, Smarter Insights</Text>
       </div>
       <div class="flex items-center space-x-4">
         <button
@@ -49,6 +50,8 @@
 </template>
 
 <script setup lang="ts">
+  import Text from '../atoms/Text.vue';
+
   defineProps<{
     isDark: Boolean,
   }>()
