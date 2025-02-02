@@ -5,21 +5,7 @@ use serde_json::Value;
 use tracing::{info, error};
 use serde::{Deserialize, Serialize};
 
-use crate::state::{DedupManager,DuplicateGroup, DedupStrategy, SimilarityMethod, DedupResults, DedupStats};
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateStrategyParams {
-    pub case_sensitive: Option<bool>,
-    pub ignore_whitespace: Option<bool>,
-    pub ignore_punctuation: Option<bool>,
-    pub normalize_unicode: Option<bool>,
-    pub split_strategy: Option<String>,
-    pub comparison_scope: Option<String>,
-    pub min_length: Option<u32>,
-    pub similarity_threshold: Option<f64>,
-    pub similarity_method: Option<String>,
-    pub use_parallel: Option<bool>,
-}
+use crate::state::{DedupManager,DuplicateGroup, DedupStrategy, SimilarityMethod, DedupResults, DedupStats, DedupStrategySettings};
 
 /// Clears all texts from the deduplication manager.
 #[tauri::command]
@@ -37,7 +23,7 @@ pub async fn add_text(app_handle: AppHandle, text: String) -> Result<usize, Stri
 }
 
 #[tauri::command]
-pub async fn update_strategy(app_handle: AppHandle, strategy:UpdateStrategyParams) -> Result<(), String> {
+pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySettings) -> Result<(), String> {
     info!("🔄 Received strategy update request");
     info!("📥 Incoming strategy data: {:#?}", strategy);
     
@@ -96,10 +82,8 @@ pub async fn update_strategy(app_handle: AppHandle, strategy:UpdateStrategyParam
 }
 
 #[tauri::command]
-pub async fn get_strategy(app_handle: AppHandle) -> Result<String, String> {
-    let state = app_handle.state::<Mutex<DedupManager>>();
-    let manager = state.lock().await;
-    Ok(manager.get_strategy())
+pub async fn get_strategy_by_preset(preset_name: &str) -> Result<DedupStrategySettings, String> {
+    Ok(DedupStrategySettings::get_default_by_preset(preset_name))
 }
 
 #[tauri::command]
@@ -141,15 +125,14 @@ pub async fn get_text(app_handle: AppHandle, id: usize) -> Result<String, String
     manager.get_text(id).ok_or_else(|| "Text not found".to_string())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn setup() -> Mutex<DedupManager> {
-        use crate::state::{DedupManager, DedupStrategy, SimilarityMethod};
+        use crate::state::{DedupManager, DedupStrategySettings, SimilarityMethod};
         Mutex::new(DedupManager::new(
-            DedupStrategy::default(),
+            DedupStrategySettings::default(),
             SimilarityMethod::default(),
         ))
     }
@@ -255,7 +238,7 @@ mod tests {
         // Test updating strategy
         {
             let mut guard = manager.lock().await;
-            let strategy = DedupStrategy::default();
+            let strategy = DedupStrategySettings::default();
             let strategy_json = serde_json::to_string(&strategy).unwrap();
             guard.update_strategy(&strategy_json).unwrap();
         }

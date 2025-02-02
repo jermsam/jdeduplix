@@ -1,6 +1,6 @@
 // Main deduplication engine
 use crate::core::classifier::TextClassifier;
-use crate::state::DedupStrategy;
+use crate::state::DedupStrategySettings;
 use std::collections::HashMap;
 
 pub struct DeduplicationEngine {
@@ -9,14 +9,14 @@ pub struct DeduplicationEngine {
 }
 
 impl DeduplicationEngine {
-    pub fn new(strategy: DedupStrategy) -> Self {
+    pub fn new(strategy: DedupStrategySettings) -> Self {
         Self {
             classifier: TextClassifier::new(strategy),
             texts: HashMap::new(),
         }
     }
 
-    pub fn update_strategy(&mut self, strategy: DedupStrategy) {
+    pub fn update_strategy(&mut self, strategy: DedupStrategySettings) {
         println!("Engine: Updating strategy to {:?}", strategy);
         // Create new classifier with updated strategy and clear any existing content
         self.classifier = TextClassifier::new(strategy);
@@ -43,7 +43,7 @@ impl DeduplicationEngine {
             .collect()
     }
 
-    pub fn get_strategy(&self) -> &DedupStrategy {
+    pub fn get_strategy(&self) -> &DedupStrategySettings {
         self.classifier.get_strategy()
     }
 

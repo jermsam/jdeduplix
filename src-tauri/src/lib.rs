@@ -3,15 +3,17 @@
 pub mod commands;
 pub mod core;
 pub mod state;
+pub use state::*;
+pub mod presets;
 
-use crate::state::{DedupManager, DedupStrategy, SimilarityMethod};
+use crate::state::{DedupManager, DedupStrategySettings, SimilarityMethod};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(DedupManager::new(
-            DedupStrategy::default(),
+            DedupStrategySettings::default(),
             SimilarityMethod::default(),
         )))
         .plugin(tauri_plugin_shell::init())

@@ -4,7 +4,7 @@ use blake3;
 
 use serde::{Serialize, Deserialize};
 use strsim::jaro_winkler;
-use crate::state::{ DedupStrategy, SimilarityMethod};
+use crate::state::{ DedupStrategySettings, SimilarityMethod};
 use super::semantic::{SemanticAnalyzer, DocumentVector};
 use std::collections::HashMap;
 
@@ -15,13 +15,13 @@ pub struct TextVector {
     pub normalized_text: String,
     #[serde(skip)]
     hash: blake3::Hash,
-    pub strategy: DedupStrategy,
+    pub strategy: DedupStrategySettings,
     #[serde(skip)]
     doc_vector: Option<DocumentVector>,
 }
 
 impl TextVector {
-    pub fn new(text: String, strategy: &DedupStrategy) -> Self {
+    pub fn new(text: String, strategy: &DedupStrategySettings) -> Self {
         let normalized_text = Self::normalize_text(strategy, &text);
         let hash = blake3::hash(text.as_bytes());
         
@@ -34,20 +34,20 @@ impl TextVector {
         }
     }
 
-    pub fn update_strategy(&mut self, strategy: &DedupStrategy) {
+    pub fn update_strategy(&mut self, strategy: &DedupStrategySettings) {
         self.strategy = strategy.clone();
         self.normalized_text = Self::normalize_text(strategy, &self.text);
         self.hash = blake3::hash(self.normalized_text.as_bytes());
     }
 
-    fn normalize_text(strategy: &DedupStrategy, text: &str) -> String {
+    fn normalize_text(strategy: &DedupStrategySettings, text: &str) -> String {
         let mut result = text.to_string();
 
         result
     }
 
     pub fn prepare_semantic(&mut self, analyzer: &mut SemanticAnalyzer) {
-        self.doc_vector = Some(analyzer.encode(&self.normalized_text));
+        self.doc_vector = Some(analyzer.encode(&self.normalized_text, None));
     }
 
     pub fn is_similar(&self, other: &TextVector, threshold: f64) -> bool {
@@ -126,7 +126,7 @@ impl TextDocument {
     }
 
     pub fn update_vector(&mut self, analyzer: &SemanticAnalyzer) {
-        let doc = analyzer.encode(&self.text);
+        let doc = analyzer.encode(&self.text, Some("en"));
         self.embedding = Some(doc.vector);
     }
 
@@ -138,12 +138,12 @@ impl TextDocument {
 #[derive(Debug)]
 pub struct VectorStore {
     analyzer: SemanticAnalyzer,
-    strategy: DedupStrategy,
+    strategy: DedupStrategySettings,
     documents: HashMap<usize, TextDocument>,
 }
 
 impl VectorStore {
-    pub fn new(strategy: DedupStrategy) -> Self {
+    pub fn new(strategy: DedupStrategySettings) -> Self {
         Self {
             analyzer: SemanticAnalyzer::new(),
             strategy,

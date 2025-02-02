@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
+use crate::config::DynamicConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SimilarityMethod {
@@ -15,32 +16,75 @@ impl Default for SimilarityMethod {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DedupStrategy {
-    pub similarity_method: SimilarityMethod,
-    pub similarity_threshold: f64,
-    pub case_sensitive: bool,
-    pub ignore_punctuation: bool,
-    pub ignore_whitespace: bool,
-    pub normalize_unicode: bool,
-    pub min_length: Option<u32>,
-    pub comparison_scope: Option<String>,
-    pub split_strategy: Option<String>,
+pub struct SimilarityWeighting {
+    pub frequency: f64,
+    pub position: f64,
+    pub context: f64,
 }
 
-impl Default for DedupStrategy {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DedupStrategySettings {
+    pub case_sensitive: Option<bool>,
+    pub ignore_whitespace: Option<bool>,
+    pub ignore_punctuation: Option<bool>,
+    pub normalize_unicode: Option<bool>,
+    pub split_strategy: Option<String>,
+    pub comparison_scope: Option<String>,
+    pub min_length: Option<u32>,
+    pub similarity_threshold: Option<f64>,
+    pub similarity_method: Option<String>,
+    pub use_parallel: Option<bool>,
+    pub ignore_stopwords: Option<bool>,
+    pub stemming: Option<bool>,
+    pub ngram_size: Option<u32>,
+    pub language_detection: Option<bool>,
+    pub encoding_normalization: Option<bool>,
+    pub similarity_weighting: Option<SimilarityWeighting>,
+    pub adaptive_thresholding: Option<bool>,
+    pub config: Option<DynamicConfig>,
+}
+
+impl DedupStrategySettings {
+    pub fn get_default_by_preset(name: &str) -> Self {
+        use crate::presets::DEDUP_PRESETS;
+        DEDUP_PRESETS
+            .iter()
+            .find(|preset| preset.name == name)
+            .map(|preset| preset.settings.clone())
+            .unwrap_or_else(|| DEDUP_PRESETS[0].settings.clone())
+    }
+}
+
+impl Default for DedupStrategySettings {
     fn default() -> Self {
         Self {
-            similarity_method: SimilarityMethod::default(),
-            similarity_threshold: 1.0,
-            case_sensitive: false,
-            ignore_punctuation: true,
-            ignore_whitespace: true,
-            normalize_unicode: true,
-            min_length: None,
-            comparison_scope: None,
-            split_strategy: None,
+            case_sensitive: Some(false),
+            ignore_whitespace: Some(true),
+            ignore_punctuation: Some(false),
+            normalize_unicode: Some(false),
+            split_strategy: Some("Words".to_string()),
+            comparison_scope: Some("Global".to_string()),
+            min_length: Some(10),
+            similarity_threshold: Some(0.8),
+            similarity_method: Some("Exact".to_string()),
+            use_parallel: Some(true),
+            ignore_stopwords: Some(false),
+            stemming: Some(false),
+            ngram_size: Some(3),
+            language_detection: Some(false),
+            encoding_normalization: Some(true),
+            similarity_weighting: None,
+            adaptive_thresholding: Some(false),
+            config: Some(DynamicConfig::default()),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DedupStrategyPreset {
+    pub name: String,
+    pub description: String,
+    pub settings: DedupStrategySettings,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,14 +107,13 @@ pub struct DedupStats {
     pub duplicate_groups: usize,
 }
 
-
 pub struct DedupManager {
-    strategy: DedupStrategy,
+    strategy: DedupStrategySettings,
     texts: Vec<String>,
 }
 
 impl DedupManager {
-    pub fn new(strategy: DedupStrategy, _similarity_method: SimilarityMethod) -> Self {
+    pub fn new(strategy: DedupStrategySettings, _similarity_method: SimilarityMethod) -> Self {
         Self {
             strategy,
             texts: Vec::new(),
@@ -117,17 +160,18 @@ impl DedupManager {
                 }
 
                 let is_duplicate = match self.strategy.similarity_method {
-                    SimilarityMethod::Exact => text1 == text2,
-                    SimilarityMethod::Levenshtein => {
+                    Some("exact") => text1 == text2,
+                    Some("levenshtein") => {
                         let distance = levenshtein::levenshtein(text1, text2);
                         let max_len = text1.len().max(text2.len());
                         let similarity = 1.0 - (distance as f64 / max_len as f64);
-                        similarity >= self.strategy.similarity_threshold
+                        similarity >= self.strategy.similarity_threshold.unwrap_or(0.0)
                     }
-                    SimilarityMethod::Semantic => {
+                    Some("semantic") => {
                         // TODO: Implement semantic similarity
                         false
                     }
+                    _ => false,
                 };
 
                 if is_duplicate {
@@ -142,8 +186,8 @@ impl DedupManager {
                     .map(|&idx| self.texts[idx].clone())
                     .collect();
                 let similarity = match self.strategy.similarity_method {
-                    SimilarityMethod::Exact => 1.0,
-                    SimilarityMethod::Levenshtein => {
+                    Some("exact") => 1.0,
+                    Some("levenshtein") => {
                         let text1 = &self.texts[group[0]];
                         let max_similarity = group[1..].iter().map(|&idx| {
                             let text2 = &self.texts[idx];
@@ -153,7 +197,8 @@ impl DedupManager {
                         }).fold(0.0, f64::max);
                         max_similarity
                     },
-                    SimilarityMethod::Semantic => 1.0, // TODO: Implement semantic similarity
+                    Some("semantic") => 1.0, // TODO: Implement semantic similarity
+                    _ => 0.0,
                 };
                 groups.push(DuplicateGroup {
                     original,
