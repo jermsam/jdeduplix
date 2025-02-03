@@ -26,8 +26,8 @@ type DefaultDevice = NdArrayDevice;
 
 // Model constants.
 const EMBEDDING_DIM: usize = 768; // BERT-base dimension
-const MAX_SEQUENCE_LENGTH: usize = 512;
-const VOCAB_SIZE: usize = 30522; // BERT vocabulary size
+// const MAX_SEQUENCE_LENGTH: usize = 512;
+// const VOCAB_SIZE: usize = 30522; // BERT vocabulary size
 
 // ---------------------------------------------------------------------
 // Static Resources

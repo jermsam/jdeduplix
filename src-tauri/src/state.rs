@@ -40,6 +40,15 @@ impl Default for SimilarityMethod {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SplitStrategy {
+    Words,
+    Sentences,
+    Paragraphs,
+    Characters,
+    WholeText,
+}
+
 // /// Options for weighting the similarity.
 /// Defines different strategies for adjusting similarity scores.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,7 +76,7 @@ pub struct DedupStrategySettings {
     pub ignore_whitespace: Option<bool>,
     pub ignore_punctuation: Option<bool>,
     pub normalize_unicode: Option<bool>,
-    pub split_strategy: Option<String>,
+    pub split_strategy: SplitStrategy,
     pub comparison_scope: Option<String>,
     pub min_length: Option<usize>,
     pub similarity_threshold: Option<f64>,
@@ -92,7 +101,7 @@ impl Default for DedupStrategySettings {
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
-            split_strategy: Some("Words".to_string()),
+            split_strategy: SplitStrategy::Words,
             comparison_scope: Some("Global".to_string()),
             min_length: Some(10),
             similarity_threshold: Some(0.8),

@@ -1,11 +1,10 @@
 // Smart classifier for content type detection
 pub struct SmartClassifier;
-
-use std::cell::RefCell;
+// use std::cell::RefCell;
 use std::collections::HashSet;
 use rayon::prelude::*;
 use crate::core::semantic::SemanticAnalyzer;
-use crate::state::DedupStrategySettings;
+use crate::state::{DedupStrategySettings, SplitStrategy};
 use crate::config::DynamicConfig;
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
@@ -116,21 +115,23 @@ impl TextClassifier {
     }
 
     fn split_text(&self, text: &str) -> Vec<String> {
-        match self.strategy.split_strategy.as_deref() {
-            Some("Characters") => text.chars().map(|c| c.to_string()).collect(),
-            Some("Words") => text.split_whitespace().map(|s| s.to_string()).collect(),
-            Some("Sentences") => {
+        match self.strategy.split_strategy {
+            SplitStrategy::Characters => text.chars().map(|c| c.to_string()).collect(),
+            SplitStrategy::Words => text.split_whitespace().map(|s| s.to_string()).collect(),
+            SplitStrategy::Sentences => {
                 let delimiters = self.config.merge_sentence_delimiters();
                 text.split(|c| delimiters.contains(&c))
                     .map(|s| s.trim().to_string())
                     .collect()
             }
-            Some("Paragraphs") => {
+            SplitStrategy::Paragraphs => {
                 let delimiter = self.config.get_paragraph_delimiters();
                 text.split(delimiter)
                     .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
                     .collect()
             }
+            SplitStrategy::WholeText => vec![text.to_string()],
             _ => vec![text.to_string()],
         }
     }
