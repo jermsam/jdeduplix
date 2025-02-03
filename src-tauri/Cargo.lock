@@ -1777,6 +1777,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "deunicode"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "339544cc9e2c4dc3fc7149fd630c5f22263a4fdf18a98afd0075784968b5cf00"
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1984,6 +1990,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1e6a265c649f3f5979b601d26f1d05ada116434c87741c9493cb56218f76cbc"
 dependencies = [
  "heck 0.5.0",
+ "proc-macro2 1.0.93",
+ "quote 1.0.38",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "enum-iterator"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c280b9e6b3ae19e152d8e31cf47f18389781e119d4013a2a2bb0180e5facc635"
+dependencies = [
+ "enum-iterator-derive",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ab991c1362ac86c61ab6f556cff143daa22e5a15e4e189df818b2fd19fe65b"
+dependencies = [
  "proc-macro2 1.0.93",
  "quote 1.0.38",
  "syn 2.0.98",
@@ -3517,6 +3543,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
+name = "jaro_winkler"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "966903d6b75c207539d45eef272e66e68542640adc142f15e9c9623f76f36b5f"
+
+[[package]]
 name = "javascriptcore-rs"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3547,18 +3579,20 @@ dependencies = [
  "blake3",
  "burn",
  "dashmap",
+ "deunicode",
  "dirs 6.0.0",
  "fingerprint",
  "fst",
  "futures 0.3.31",
  "hashbrown 0.15.2",
  "hex",
- "levenshtein",
+ "jaro_winkler",
  "lru 0.13.0",
  "memmap2",
  "once_cell",
  "parking_lot",
  "rayon",
+ "rphonetic",
  "rust-stemmers",
  "rust-tfidf",
  "serde",
@@ -3579,6 +3613,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "triple_accel 0.4.0",
  "unicode-normalization",
  "unicode-segmentation",
  "ureq",
@@ -3707,12 +3742,6 @@ name = "lebe"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03087c2bad5e1034e8cace5926dec053fb3790248370865f5117a7d0213354c8"
-
-[[package]]
-name = "levenshtein"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db13adb97ab515a3691f56e4dbab09283d0b86cb45abd991d8634a9d6f501760"
 
 [[package]]
 name = "libappindicator"
@@ -5683,6 +5712,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rphonetic"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524c09d477bcc5bc16ae254215415d11a57b103764a11de5481f00a2c9991846"
+dependencies = [
+ "document-features",
+ "either",
+ "enum-iterator",
+ "lazy_static",
+ "nom",
+ "regex 1.11.1",
+ "serde",
+]
+
+[[package]]
 name = "rstest"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6229,7 +6273,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c869b25830e4824ef7279015cfc298a0674aca6a54eeff2efce8d12bf3701fe"
 dependencies = [
  "strsim 0.10.0",
- "triple_accel",
+ "triple_accel 0.3.4",
 ]
 
 [[package]]
@@ -7433,6 +7477,12 @@ name = "triple_accel"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "622b09ce2fe2df4618636fb92176d205662f59803f39e70d1c333393082de96c"
+
+[[package]]
+name = "triple_accel"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22048bc95dfb2ffd05b1ff9a756290a009224b60b2f0e7525faeee7603851e63"
 
 [[package]]
 name = "try-lock"

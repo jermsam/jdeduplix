@@ -4,11 +4,14 @@ pub struct SmartClassifier;
 use std::collections::HashSet;
 use rayon::prelude::*;
 use crate::core::semantic::SemanticAnalyzer;
-use crate::state::{DedupStrategySettings, SplitStrategy, ComparisonScope};
+use crate::state::{DedupStrategySettings, SplitStrategy, ComparisonScope, SimilarityMethod, FuzzyAlgorithm};
 use crate::config::DynamicConfig;
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
 use std::sync::RwLock;
+use strsim::{jaro_winkler, damerau_levenshtein};
+use deunicode::deunicode;
+use triple_accel::levenshtein;
 
 /// Text classifier for detecting duplicates
 pub struct TextClassifier {
@@ -205,6 +208,63 @@ impl TextClassifier {
         }
     }
 
+    /// Calculate similarity between two texts using the specified method
+    fn calculate_text_similarity(&self, text1: &str, text2: &str) -> f64 {
+        match self.strategy.similarity_method {
+            SimilarityMethod::Exact => {
+                if text1 == text2 { 1.0 } else { 0.0 }
+            },
+            SimilarityMethod::Levenshtein => {
+                let distance = levenshtein::levenshtein(text1.as_bytes(), text2.as_bytes());
+                let max_len = text1.len().max(text2.len());
+                if max_len == 0 { 1.0 } else { 1.0 - (distance as f64 / max_len as f64) }
+            },
+            SimilarityMethod::Semantic => {
+                // Semantic similarity is handled separately through the semantic analyzer
+                0.0
+            },
+            SimilarityMethod::Fuzzy(algorithm) => {
+                match algorithm {
+                    FuzzyAlgorithm::DamerauLevenshtein => {
+                        let distance = damerau_levenshtein(text1, text2);
+                        let max_len = text1.len().max(text2.len());
+                        if max_len == 0 { 1.0 } else { 1.0 - (distance as f64 / max_len as f64) }
+                    },
+                    FuzzyAlgorithm::JaroWinkler => {
+                        jaro_winkler(text1, text2)
+                    },
+                    FuzzyAlgorithm::Soundex => {
+                        // Simple phonetic comparison using normalized text
+                        let t1 = deunicode(text1).to_lowercase();
+                        let t2 = deunicode(text2).to_lowercase();
+                        if t1 == t2 { 1.0 } else { 0.0 }
+                    },
+                    FuzzyAlgorithm::NGram => {
+                        let ngram_size = self.strategy.ngram_size.unwrap_or(3);
+                        let t1 = text1.chars().collect::<Vec<_>>();
+                        let t2 = text2.chars().collect::<Vec<_>>();
+                        
+                        if t1.len() < ngram_size || t2.len() < ngram_size {
+                            return if text1 == text2 { 1.0 } else { 0.0 };
+                        }
+
+                        let ngrams1: HashSet<String> = t1.windows(ngram_size)
+                            .map(|w| w.iter().collect::<String>())
+                            .collect();
+                        let ngrams2: HashSet<String> = t2.windows(ngram_size)
+                            .map(|w| w.iter().collect::<String>())
+                            .collect();
+
+                        let intersection = ngrams1.intersection(&ngrams2).count() as f64;
+                        let union = ngrams1.union(&ngrams2).count() as f64;
+
+                        if union == 0.0 { 0.0 } else { intersection / union }
+                    }
+                }
+            }
+        }
+    }
+
     /// Calculate the similarity between two texts
     pub fn calculate_similarity(&mut self, text1: &str, text2: &str) -> f64 {
         // Apply minimum length filter
@@ -216,28 +276,31 @@ impl TextClassifier {
         let normalized1 = self.normalize_text(text1);
         let normalized2 = self.normalize_text(text2);
 
-        match &self.strategy.similarity_method {
-            Some(method) => match method.as_str() {
-                "exact" => {
-                    if normalized1 == normalized2 {
-                        1.0
-                    } else {
-                        0.0
-                    }
-                }
-                "semantic" => {
-                    self.semantic_analyzer.write().unwrap().calculate_semantic_similarity(
-                        &normalized1,
-                        &normalized2,
-                        &self.strategy
-                    )
-                }
-                "levenshtein" => {
-                    levenshtein::levenshtein(&normalized1, &normalized2) as f64
-                }
-                _ => 0.0
-            }
-            None => 0.0
+        self.calculate_text_similarity(&normalized1, &normalized2)
+    }
+
+    /// Helper function to check if two texts are similar based on their features
+    fn are_texts_similar(&self, words1: &HashSet<String>, words2: &HashSet<String>, threshold: f64) -> bool {
+        let intersection = words1.intersection(words2).count();
+        let union = words1.union(words2).count();
+        
+        if union == 0 {
+            return false;
+        }
+        
+        let base_similarity = intersection as f64 / union as f64;
+        
+        // For fuzzy matching, also compare the actual text content
+        if let SimilarityMethod::Fuzzy(_) = self.strategy.similarity_method {
+            let text1 = words1.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" ");
+            let text2 = words2.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" ");
+            let fuzzy_similarity = self.calculate_text_similarity(&text1, &text2);
+            
+            // Use a weighted combination of both similarities
+            let combined_similarity = 0.7 * base_similarity + 0.3 * fuzzy_similarity;
+            combined_similarity >= threshold
+        } else {
+            base_similarity >= threshold
         }
     }
 
@@ -343,18 +406,6 @@ impl TextClassifier {
         }
 
         groups
-    }
-
-    /// Helper function to check if two texts are similar based on their features
-    fn are_texts_similar(&self, words1: &HashSet<String>, words2: &HashSet<String>, threshold: f64) -> bool {
-        let intersection = words1.intersection(words2).count();
-        let union = words1.union(words2).count();
-        
-        if union == 0 {
-            return false;
-        }
-        
-        (intersection as f64 / union as f64) >= threshold
     }
 
     /// Calculate the appropriate window size based on split strategy

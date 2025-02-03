@@ -3,6 +3,10 @@ use anyhow::Result;
 use std::collections::HashSet;
 use crate::config::DynamicConfig;
 use rayon::prelude::*;
+use std::str::FromStr;
+use strsim;
+use jaro_winkler::jaro_winkler;
+use rphonetic::{Encoder, Soundex};
 
 // ---------------------------------------------------------------------
 // Core Types
@@ -29,14 +33,43 @@ impl Default for SimilarityAggregation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SimilarityMethod {
-    Exact,
-    Semantic,
-    Levenshtein,
+    Exact,           // Exact string matching
+    Semantic,        // Semantic similarity using embeddings
+    Levenshtein,    // Basic edit distance
+    Fuzzy(FuzzyAlgorithm),  // Various fuzzy matching algorithms
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum FuzzyAlgorithm {
+    DamerauLevenshtein,  // Like Levenshtein but includes transpositions
+    JaroWinkler,         // Good for names and short strings, prioritizes prefix matches
+    Soundex,             // Phonetic matching
+    NGram,               // N-gram based similarity
+}
+
+impl FromStr for FuzzyAlgorithm {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "dameraulevenshtein" | "damerau_levenshtein" => Ok(FuzzyAlgorithm::DamerauLevenshtein),
+            "jarowinkler" => Ok(FuzzyAlgorithm::JaroWinkler),
+            "soundex" => Ok(FuzzyAlgorithm::Soundex),
+            "ngram" => Ok(FuzzyAlgorithm::NGram),
+            _ => Err(format!("Unknown fuzzy algorithm: {}", s))
+        }
+    }
 }
 
 impl Default for SimilarityMethod {
     fn default() -> Self {
         SimilarityMethod::Exact
+    }
+}
+
+impl Default for FuzzyAlgorithm {
+    fn default() -> Self {
+        FuzzyAlgorithm::DamerauLevenshtein
     }
 }
 
@@ -86,7 +119,7 @@ pub struct DedupStrategySettings {
     pub comparison_scope: ComparisonScope,
     pub min_length: Option<usize>,
     pub similarity_threshold: Option<f64>,
-    pub similarity_method: Option<String>,
+    pub similarity_method: SimilarityMethod,
     pub use_parallel: Option<bool>,
     pub ignore_stopwords: Option<bool>,
     pub stemming: Option<bool>,
@@ -111,7 +144,7 @@ impl Default for DedupStrategySettings {
             comparison_scope: ComparisonScope::Global,
             min_length: Some(10),
             similarity_threshold: Some(0.8),
-            similarity_method: Some("Exact".to_string()),
+            similarity_method: SimilarityMethod::Exact,
             use_parallel: Some(true),
             ignore_stopwords: Some(false),
             stemming: Some(false),
@@ -282,16 +315,16 @@ impl DedupManager {
                         };
 
                         // Calculate similarity based on method
-                        match self.strategy.similarity_method.as_deref() {
-                            Some("exact") => {
+                        match self.strategy.similarity_method {
+                            SimilarityMethod::Exact => {
                                 if text1 == text2 { 1.0 } else { 0.0 }
                             },
-                            Some("levenshtein") => {
-                                let distance = levenshtein::levenshtein(text1, text2);
+                            SimilarityMethod::Levenshtein => {
+                                let distance = strsim::levenshtein(text1, text2);
                                 let max_len = text1.len().max(text2.len());
                                 1.0 - (distance as f64 / max_len as f64)
                             },
-                            Some("semantic") => {
+                           SimilarityMethod::Semantic => {
                                 // Check if languages match for semantic comparison
                                 if let (Some(l1), Some(l2)) = (lang1, lang2) {
                                     if l1.lang() != l2.lang() {
@@ -320,6 +353,51 @@ impl DedupManager {
                                     0.0
                                 } else {
                                     intersection / union
+                                }
+                            },
+                            SimilarityMethod::Fuzzy(algorithm) => {
+                                // Fuzzy matching
+                                match algorithm {
+                                    FuzzyAlgorithm::DamerauLevenshtein => {
+                                        let distance = strsim::damerau_levenshtein(text1, text2);
+                                        let max_len = text1.len().max(text2.len());
+                                        1.0 - (distance as f64 / max_len as f64)
+                                    },
+                                    FuzzyAlgorithm::JaroWinkler => {
+                                        strsim::jaro_winkler(text1, text2)
+                                    },
+                                    FuzzyAlgorithm::Soundex => {
+                                        let soundex = Soundex::default();
+                                        // Handle potential None results from encode
+                                        match (soundex.encode(text1), soundex.encode(text2)) {
+                                            (encoded1, encoded2) => {
+                                                strsim::jaro_winkler(&encoded1, &encoded2)
+                                            },
+                                            _ => 0.0 // Return 0.0 similarity if encoding fails
+                                        }
+                                    },
+                                    FuzzyAlgorithm::NGram => {
+                                        let ngram_size = self.strategy.ngram_size.unwrap_or(3) as usize;
+                                        let ngrams1 = text1.chars()
+                                            .collect::<Vec<_>>()
+                                            .windows(ngram_size)
+                                            .map(|w| w.iter().collect::<String>())
+                                            .collect::<HashSet<_>>();
+                                        let ngrams2 = text2.chars()
+                                            .collect::<Vec<_>>()
+                                            .windows(ngram_size)
+                                            .map(|w| w.iter().collect::<String>())
+                                            .collect::<HashSet<_>>();
+                                        
+                                        let intersection = ngrams1.intersection(&ngrams2).count() as f64;
+                                        let union = ngrams1.union(&ngrams2).count() as f64;
+                                        
+                                        if union == 0.0 {
+                                            0.0
+                                        } else {
+                                            intersection / union
+                                        }
+                                    },
                                 }
                             },
                             _ => 0.0,
