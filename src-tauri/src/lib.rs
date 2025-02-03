@@ -5,9 +5,7 @@ pub mod core;
 pub mod state;
 pub mod config;
 pub use state::*;
-pub mod presets;
 
-use crate::state::{DedupManager, DedupStrategySettings, SimilarityMethod};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

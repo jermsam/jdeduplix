@@ -83,16 +83,7 @@ pub struct DedupStrategySettings {
     pub config: Option<DynamicConfig>,
 }
 
-impl DedupStrategySettings {
-    pub fn get_default_by_preset(name: &str) -> Self {
-        use crate::presets::DEDUP_PRESETS;
-        DEDUP_PRESETS
-            .iter()
-            .find(|preset| preset.name == name)
-            .map(|preset| preset.settings.clone())
-            .unwrap_or_else(|| DEDUP_PRESETS[0].settings.clone())
-    }
-}
+
 
 impl Default for DedupStrategySettings {
     fn default() -> Self {

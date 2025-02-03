@@ -52,10 +52,6 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
     manager.update_strategy(&serde_json::to_string(&dedup_strategy).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub async fn get_strategy_by_preset(preset_name: &str) -> Result<DedupStrategySettings, String> {
-    Ok(DedupStrategySettings::get_default_by_preset(preset_name))
-}
 
 #[tauri::command]
 pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings, String> {

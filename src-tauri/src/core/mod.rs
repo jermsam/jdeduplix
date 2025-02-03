@@ -1,5 +1,5 @@
 // Core deduplication functionality
-pub mod vector;
+
 pub mod classifier;
 pub mod semantic;
 pub mod engine;
