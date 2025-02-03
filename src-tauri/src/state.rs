@@ -40,7 +40,7 @@ impl Default for SimilarityMethod {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SplitStrategy {
     Words,
     Sentences,
