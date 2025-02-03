@@ -1,11 +1,9 @@
 use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex;
 use anyhow::Result;
-use serde_json::Value;
-use tracing::{info, error};
-use serde::{Deserialize, Serialize};
-
-use crate::state::{DedupManager,DuplicateGroup, DedupStrategy, SimilarityMethod, DedupResults, DedupStats, DedupStrategySettings};
+use tracing::info;
+use crate::config::DynamicConfig;
+use crate::state::{DedupManager,DuplicateGroup, DedupStrategySettings,  DedupResults, DedupStats};
 
 /// Clears all texts from the deduplication manager.
 #[tauri::command]
@@ -26,54 +24,27 @@ pub async fn add_text(app_handle: AppHandle, text: String) -> Result<usize, Stri
 pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySettings) -> Result<(), String> {
     info!("🔄 Received strategy update request");
     info!("📥 Incoming strategy data: {:#?}", strategy);
-    
-    // Convert the frontend strategy format to our DedupStrategy
-    let similarity_method = match strategy.similarity_method.as_deref() {
-        Some("Exact") => SimilarityMethod::Exact,
-        Some("Semantic") => SimilarityMethod::Semantic,
-        Some("Levenshtein") => SimilarityMethod::Levenshtein,
-        other => {
-            info!("⚠️ Unknown similarity method: {:?}, using default", other);
-            SimilarityMethod::default()
-        }
-    };
 
-    let similarity_threshold = strategy.similarity_threshold.unwrap_or_else(|| {
-        info!("⚠️ No similarity threshold provided, using default: 1.0");
-        1.0
-    });
-
-    // Get optional boolean values with defaults
-    let case_sensitive = strategy.case_sensitive.unwrap_or_else(|| {
-        info!("⚠️ No case_sensitive setting provided, using default: false");
-        false
-    });
-
-    let ignore_punctuation = strategy.ignore_punctuation.unwrap_or_else(|| {
-        info!("⚠️ No ignore_punctuation setting provided, using default: true");
-        true
-    });
-
-    let ignore_whitespace = strategy.ignore_whitespace.unwrap_or_else(|| {
-        info!("⚠️ No ignore_whitespace setting provided, using default: true");
-        true
-    });
-
-    let normalize_unicode = strategy.normalize_unicode.unwrap_or_else(|| {
-        info!("⚠️ No normalize_unicode setting provided, using default: true");
-        true
-    });
-
-    let dedup_strategy = DedupStrategy {
-        similarity_method,
-        similarity_threshold,
-        case_sensitive,
-        ignore_punctuation,
-        ignore_whitespace,
-        normalize_unicode,
-        comparison_scope: strategy.comparison_scope,
+    let dedup_strategy = DedupStrategySettings {
+        similarity_aggregation: strategy.similarity_aggregation,
+        case_sensitive: strategy.case_sensitive,
+        ignore_whitespace: strategy.ignore_whitespace,
+        ignore_punctuation: strategy.ignore_punctuation,
+        normalize_unicode: strategy.normalize_unicode,
         split_strategy: strategy.split_strategy,
+        comparison_scope: strategy.comparison_scope,
         min_length: strategy.min_length,
+        similarity_threshold: strategy.similarity_threshold,
+        similarity_method: strategy.similarity_method,
+        use_parallel: strategy.use_parallel,
+        ignore_stopwords: strategy.ignore_stopwords,
+        stemming: strategy.stemming,
+        ngram_size: strategy.ngram_size,
+        language_detection: Some(false),
+        encoding_normalization: Some(true),
+        similarity_weighting: None,
+        adaptive_thresholding: Some(false),
+        config: Some(DynamicConfig::default()),
     };
 
     let state = app_handle.state::<Mutex<DedupManager>>();
@@ -84,6 +55,14 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
 #[tauri::command]
 pub async fn get_strategy_by_preset(preset_name: &str) -> Result<DedupStrategySettings, String> {
     Ok(DedupStrategySettings::get_default_by_preset(preset_name))
+}
+
+#[tauri::command]
+pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings, String> {
+    let state = app_handle.state::<Mutex<DedupManager>>();
+    let manager = state.lock().await;
+    let strategy_str = manager.get_strategy();
+    serde_json::from_str(&strategy_str).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

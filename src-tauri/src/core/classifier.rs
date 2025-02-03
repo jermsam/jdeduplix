@@ -1,21 +1,21 @@
 // Smart classifier for content type detection
 pub struct SmartClassifier;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 use rayon::prelude::*;
-use crate::core::semantic::{SemanticAnalyzer, DocumentVector};
-use crate::core::vector::TextDocument;
+use crate::core::semantic::SemanticAnalyzer;
 use crate::state::DedupStrategySettings;
 use crate::config::DynamicConfig;
-use burn::module::Module;
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
+use std::sync::RwLock;
 
 /// Text classifier for detecting duplicates
 pub struct TextClassifier {
     texts: Vec<String>,
     strategy: DedupStrategySettings,
-    semantic_analyzer: SemanticAnalyzer,
+    semantic_analyzer: RwLock<SemanticAnalyzer>,
     config: DynamicConfig,
 }
 
@@ -24,7 +24,7 @@ impl Default for TextClassifier {
         Self {
             texts: Vec::new(),
             strategy: DedupStrategySettings::default(),
-            semantic_analyzer: SemanticAnalyzer::default(),
+            semantic_analyzer: RwLock::new(SemanticAnalyzer::default()),
             config: DynamicConfig::default(),
         }
     }
@@ -36,7 +36,7 @@ impl TextClassifier {
         Self {
             texts: Vec::new(),
             strategy,
-            semantic_analyzer: SemanticAnalyzer::default(),
+            semantic_analyzer: RwLock::new(SemanticAnalyzer::default()),
             config: DynamicConfig::default(),
         }
     }
@@ -82,12 +82,12 @@ impl TextClassifier {
 
         // Unicode normalization
         if self.strategy.normalize_unicode.unwrap_or(false) {
-            normalized = normalized.nfkd().collect::<String>();
+            normalized = normalized.nfd().collect::<String>();
         }
 
         // Stopwords removal
         if self.strategy.ignore_stopwords.unwrap_or(false) {
-            let stop_words = self.config.merge_stop_words();
+            let stop_words = self.config.get_stop_words_for_text(&normalized);
             normalized = normalized
                 .split_whitespace()
                 .filter(|word| !stop_words.contains(&word.to_lowercase()))
@@ -136,10 +136,10 @@ impl TextClassifier {
     }
 
     /// Calculate the similarity between two texts
-    pub fn calculate_similarity(&self, text1: &str, text2: &str) -> f64 {
+    pub fn calculate_similarity(&mut self, text1: &str, text2: &str) -> f64 {
         // Apply minimum length filter
-        let min_length = self.strategy.min_length.unwrap_or_else(|| self.config.base.default_min_length);
-        if text1.len() < min_length as usize || text2.len() < min_length as usize {
+        let min_length: usize = self.strategy.min_length.unwrap_or_else(|| self.config.base.default_min_length  as usize);
+        if text1.len() < min_length || text2.len() < min_length {
             return 0.0;
         }
 
@@ -156,7 +156,7 @@ impl TextClassifier {
                     }
                 }
                 "semantic" => {
-                    self.semantic_analyzer.calculate_semantic_similarity(
+                    self.semantic_analyzer.write().unwrap().calculate_semantic_similarity(
                         &normalized1,
                         &normalized2,
                         &self.strategy
@@ -191,16 +191,28 @@ impl TextClassifier {
 
             // Use parallel iterator if enabled
             let similar_indices: Vec<usize> = if use_parallel {
+                let text1 = text1.to_string();
+                let texts = self.texts.clone();
                 ((i + 1)..self.texts.len())
                     .into_par_iter()
                     .filter(|&j| !processed.contains(&j))
-                    .filter(|&j| self.calculate_similarity(text1, &self.texts[j]) >= threshold)
+                    .map(
+                        |j| (j, self.calculate_similarity(&text1, &texts[j]))
+                    )
+                    .filter(|&(_, similarity)| similarity >= threshold)
+                    .map(|(j, _)| j)
                     .collect()
             } else {
-                ((i + 1)..self.texts.len())
-                    .filter(|&j| !processed.contains(&j))
-                    .filter(|&j| self.calculate_similarity(text1, &self.texts[j]) >= threshold)
-                    .collect()
+                let mut similar = Vec::new();
+                for j in (i + 1)..self.texts.len() {
+                    if !processed.contains(&j) {
+                        let similarity = self.calculate_similarity(text1, &self.texts[j]);
+                        if similarity >= threshold {
+                            similar.push(j);
+                        }
+                    }
+                }
+                similar
             };
 
             group.extend(similar_indices);

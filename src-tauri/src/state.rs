@@ -1,10 +1,7 @@
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
-use std::collections::{HashSet, HashMap};
-use whatlang::{detect, Lang};
+use std::collections::HashSet;
 use crate::config::DynamicConfig;
-use crate::core::classifier::TextClassifier;
-use crate::core::semantic::SemanticAnalyzer;
 use rayon::prelude::*;
 
 // ---------------------------------------------------------------------
@@ -47,10 +44,11 @@ impl Default for SimilarityMethod {
 /// Defines different strategies for adjusting similarity scores.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WeightingStrategy {
-    Linear,
-    Quadratic,
-    Exponential,
-    Logarithmic,
+    Linear,        // No transformation
+    Quadratic,     // similarity^2 (punishes small differences)
+    Exponential,   // exp(similarity) - 1
+    Logarithmic,   // ln(similarity) + 1 (avoids negatives)
+    WeightedMean,  // Custom weighted similarity (uses frequency, position, context)
 }
 
 /// Custom similarity weighting based on text features.

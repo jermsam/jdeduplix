@@ -1,10 +1,9 @@
 //! Semantic analysis module using Burn, Tokenizers, and NLP utilities.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::f64::consts::E;
 
-use once_cell::sync::Lazy;
 use tokenizers::models::wordpiece::WordPiece;
 use tokenizers::normalizers::BertNormalizer;
 use tokenizers::pre_tokenizers::bert::BertPreTokenizer;
@@ -21,7 +20,6 @@ use unicode_normalization::UnicodeNormalization;
 
 use crate::state::{DedupStrategySettings, SimilarityAggregation, SimilarityWeighting, WeightingStrategy};
 
-
 // Type aliases for convenience.
 type DefaultBackend = NdArray;
 type DefaultDevice = NdArrayDevice;
@@ -36,36 +34,10 @@ const VOCAB_SIZE: usize = 30522; // BERT vocabulary size
 // ---------------------------------------------------------------------
 
 /// Lazily initialized tokenizer with WordPiece, Bert normalizer and pre-tokenizer.
-static TOKENIZER: Lazy<Tokenizer> = Lazy::new(|| {
-    let wordpiece = WordPiece::builder()
-        .unk_token("[UNK]".into())
-        .max_input_chars_per_word(100)
-        .continuing_subword_prefix("##".into())
-        .build()
-        .expect("Failed to build WordPiece model");
-
-    let mut tokenizer = Tokenizer::new(wordpiece);
-    // Configure the normalizer and pre-tokenizer for BERT.
-    let normalizer = BertNormalizer::new(true, true, Some(true), true);
-    tokenizer.with_normalizer(Some(normalizer));
-    tokenizer.with_pre_tokenizer(Some(BertPreTokenizer));
-    tokenizer
-});
+static TOKENIZER: OnceLock<Arc<Tokenizer>> = OnceLock::new();
 
 /// Stopwords mapped by language.
-static STOPWORDS: Lazy<HashMap<Language, HashSet<String>>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    map.insert(Language::Eng, get(StopLanguage::English).into_iter().collect());
-    map.insert(Language::Fra, get(StopLanguage::French).into_iter().collect());
-    map.insert(Language::Spa, get(StopLanguage::Spanish).into_iter().collect());
-    map.insert(Language::Deu, get(StopLanguage::German).into_iter().collect());
-    map.insert(Language::Rus, get(StopLanguage::Russian).into_iter().collect());
-    map.insert(Language::Por, get(StopLanguage::Portuguese).into_iter().collect());
-    map.insert(Language::Ita, get(StopLanguage::Italian).into_iter().collect());
-    map
-});
-
-
+static STOPWORDS: OnceLock<HashMap<Language, HashSet<String>>> = OnceLock::new();
 
 /// A text encoder using a transformer model.
 #[derive(Debug)]
@@ -89,9 +61,25 @@ impl TextEncoder {
         );
         let encoder = config.init(&device);
 
+        let tokenizer = TOKENIZER.get_or_init(|| {
+            let wordpiece = WordPiece::builder()
+                .unk_token("[UNK]".into())
+                .max_input_chars_per_word(100)
+                .continuing_subword_prefix("##".into())
+                .build()
+                .expect("Failed to build WordPiece model");
+
+            let mut tokenizer = Tokenizer::new(wordpiece);
+            // Configure the normalizer and pre-tokenizer for BERT.
+            let normalizer = BertNormalizer::new(true, true, Some(true), true);
+            tokenizer.with_normalizer(Some(normalizer));
+            tokenizer.with_pre_tokenizer(Some(BertPreTokenizer));
+            Arc::new(tokenizer)
+        });
+
         Self {
             encoder,
-            tokenizer: Arc::new(TOKENIZER.clone()),
+            tokenizer: Arc::clone(tokenizer),
             device,
         }
     }
@@ -207,7 +195,6 @@ pub struct DocumentVector {
     pub token_count: usize,
 }
 
-
 /// A semantic analyzer that wraps a text encoder and additional NLP utilities.
 #[derive(Debug)]
 pub struct SemanticAnalyzer {
@@ -226,16 +213,20 @@ impl SemanticAnalyzer {
 
     /// Detects the language of the given text, using cache if available.
     pub fn detect_language(&mut self, text: &str) -> Option<Language> {
-        if let Some(&lang) = self.language_cache.get(text) {
-            return Some(lang);
-        }
+        // Initialize stopwords if not already initialized
+        STOPWORDS.get_or_init(|| {
+            let mut map = HashMap::new();
+            map.insert(Language::Eng, get(StopLanguage::English).into_iter().collect());
+            map.insert(Language::Fra, get(StopLanguage::French).into_iter().collect());
+            map.insert(Language::Spa, get(StopLanguage::Spanish).into_iter().collect());
+            map.insert(Language::Deu, get(StopLanguage::German).into_iter().collect());
+            map.insert(Language::Rus, get(StopLanguage::Russian).into_iter().collect());
+            map.insert(Language::Por, get(StopLanguage::Portuguese).into_iter().collect());
+            map.insert(Language::Ita, get(StopLanguage::Italian).into_iter().collect());
+            map
+        });
 
-        if let Some(info) = detect(text) {
-            self.language_cache.insert(text.to_string(), info.lang());
-            Some(info.lang())
-        } else {
-            None
-        }
+        detect(text).map(|info| info.lang())
     }
 
     /// Preprocesses text based on the provided settings.
@@ -269,10 +260,11 @@ impl SemanticAnalyzer {
         // Remove stopwords if enabled.
         if settings.ignore_stopwords.unwrap_or(false) {
             if let Some(lang) = lang {
-                if let Some(stopwords) = STOPWORDS.get(&lang) {
+                if let Some(stopwords) = STOPWORDS.get() {
                     processed = processed
                         .split_whitespace()
-                        .filter(|word| !stopwords.contains(*word))
+                        .filter(|word| stopwords.get(&lang) // Get the HashSet<String> for the given language
+                        .map_or(false, |set| set.contains(*word)) )
                         .collect::<Vec<_>>()
                         .join(" ");
                 }
@@ -374,33 +366,53 @@ impl SemanticAnalyzer {
         }
 
         // Apply similarity weighting if specified.
-        // 🟢 Apply similarity weighting if available
+        // Apply similarity weighting if available
         if let Some(weighting) = &settings.similarity_weighting {
             similarity = apply_weighting(similarity, weighting);
         }
 
         similarity * language_penalty
     }
+}
 
-
+impl Default for SemanticAnalyzer {
+    fn default() -> Self {
+        Self {
+            encoder: TextEncoder::new(),
+            language_cache: HashMap::new(),
+        }
+    }
 }
 
 /// **Applies similarity weighting based on the given strategy.**
 fn apply_weighting(similarity: f64, weighting: &SimilarityWeighting) -> f64 {
     let adjusted_similarity = match weighting.strategy {
-        WeightingStrategy::Linear => similarity,
+        WeightingStrategy::Linear => similarity, // No transformation
         WeightingStrategy::Quadratic => similarity * similarity,
         WeightingStrategy::Exponential => E.powf(similarity) - 1.0,
-        WeightingStrategy::Logarithmic => if similarity > 0.0 { similarity.ln() + 1.0 } else { 0.0 },
+        WeightingStrategy::Logarithmic => {
+            if similarity > 0.0 {
+                similarity.ln() + 1.0
+            } else {
+                0.0
+            }
+        }
+        WeightingStrategy::WeightedMean => {
+            let weight_sum = weighting.frequency + weighting.position + weighting.context;
+
+            if weight_sum > 0.0 {
+                let weighted_similarity = (similarity * weighting.frequency
+                    + similarity * weighting.position
+                    + similarity * weighting.context)
+                    / weight_sum;
+                weighted_similarity
+            } else {
+                similarity // If all weights are zero, return unchanged similarity
+            }
+        }
     };
 
-    // Normalize and apply custom weighting factors
-    let weight_sum = weighting.frequency + weighting.position + weighting.context;
-    if weight_sum > 0.0 {
-        adjusted_similarity * (weight_sum / 3.0)
-    } else {
-        adjusted_similarity
-    }
+    adjusted_similarity
 }
 
 // ---------------------------------------------------------------------

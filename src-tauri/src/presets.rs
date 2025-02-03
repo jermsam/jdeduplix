@@ -1,24 +1,23 @@
-use crate::state::{DedupStrategyPreset, DedupStrategySettings, SimilarityMethod, SimilarityWeighting, SimilarityAggregation};
+use crate::state::{DedupStrategyPreset, DedupStrategySettings, SimilarityMethod, SimilarityWeighting, SimilarityAggregation, WeightingStrategy};
 use crate::config::DynamicConfig;
 use std::collections::HashMap;
 
 // TODO: Should come from Typedb Database or a p2p store
-/// Predefined presets for common deduplication scenarios
 pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
     // 🟢 Exact Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: "Exact Match".to_string(),
-        description: "Find identical text, including spacing and punctuation".to_string(),
+        name: String::from("Exact Match"),
+        description: String::from("Find identical text, including spacing and punctuation"),
         settings: DedupStrategySettings {
-            similarity_aggregation: None,  // Exact match is a single score (no need for aggregation)
-            similarity_method: Some("Exact".to_string()),
+            similarity_aggregation: None,  
+            similarity_method: Some(String::from("Exact")),
             similarity_threshold: Some(0.95),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
-            split_strategy: Some("Words".to_string()),
-            comparison_scope: Some("Global".to_string()),
+            split_strategy: Some(String::from("Words")),
+            comparison_scope: Some(String::from("Global")),
             min_length: Some(10),
             use_parallel: Some(true),
             ignore_stopwords: Some(false),
@@ -27,9 +26,10 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             language_detection: Some(false),
             encoding_normalization: Some(true),
             similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.4_f64,
-                position: 0.4_f64,
-                context: 0.2_f64,
+                frequency: 0.4,
+                position: 0.4,
+                context: 0.2,
+                strategy: WeightingStrategy::Linear, // No transformation needed
             }),
             adaptive_thresholding: Some(false),
             config: Some(DynamicConfig::default()),
@@ -38,18 +38,18 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
 
     // 🟢 Near Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: "Near Match".to_string(),
-        description: "Find text with minor formatting differences".to_string(),
+        name: String::from("Near Match"),
+        description: String::from("Find text with minor formatting differences"),
         settings: DedupStrategySettings {
-            similarity_aggregation: None,  // Levenshtein distance provides a single similarity score
-            similarity_method: Some("Levenshtein".to_string()),
+            similarity_aggregation: None,  
+            similarity_method: Some(String::from("Levenshtein")),
             similarity_threshold: Some(0.8),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some("Words".to_string()),
-            comparison_scope: Some("Global".to_string()),
+            split_strategy: Some(String::from("Words")),
+            comparison_scope: Some(String::from("Global")),
             min_length: Some(10),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
@@ -58,9 +58,10 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             language_detection: Some(false),
             encoding_normalization: Some(true),
             similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.5_f64,
-                position: 0.3_f64,
-                context: 0.2_f64,
+                frequency: 0.5,
+                position: 0.3,
+                context: 0.2,
+                strategy: WeightingStrategy::Linear, // No transformation needed
             }),
             adaptive_thresholding: Some(true),
             config: Some(DynamicConfig::default()),
@@ -69,18 +70,18 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
 
     // 🟢 Fuzzy Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: "Fuzzy Match".to_string(),
-        description: "Find text with typos and small variations".to_string(),
+        name: String::from("Fuzzy Match"),
+        description: String::from("Find text with typos and small variations"),
         settings: DedupStrategySettings {
-            similarity_aggregation: None,  // Levenshtein distance still applies (single score)
-            similarity_method: Some("Levenshtein".to_string()),
+            similarity_aggregation: None,  
+            similarity_method: Some(String::from("Levenshtein")),
             similarity_threshold: Some(0.7),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some("Sentences".to_string()),
-            comparison_scope: Some("Global".to_string()),
+            split_strategy: Some(String::from("Sentences")),
+            comparison_scope: Some(String::from("Global")),
             min_length: Some(5),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
@@ -89,9 +90,10 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             language_detection: Some(true),
             encoding_normalization: Some(true),
             similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.6_f64,
-                position: 0.2_f64,
-                context: 0.2_f64,
+                frequency: 0.6,
+                position: 0.2,
+                context: 0.2,
+                strategy: WeightingStrategy::Quadratic, // Penalizes small differences more
             }),
             adaptive_thresholding: Some(true),
             config: Some(DynamicConfig::default()),
@@ -100,18 +102,18 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
 
     // 🔵 Similar Ideas (Uses Semantic Similarity, Aggregation Needed)
     DedupStrategyPreset {
-        name: "Similar Ideas".to_string(),
-        description: "Find text expressing similar concepts".to_string(),
+        name: String::from("Similar Ideas"),
+        description: String::from("Find text expressing similar concepts"),
         settings: DedupStrategySettings {
-            similarity_aggregation: Some(SimilarityAggregation::Mean),  // Averaging multiple embeddings' similarity scores
-            similarity_method: Some("Semantic".to_string()),
+            similarity_aggregation: Some(SimilarityAggregation::Mean),  
+            similarity_method: Some(String::from("Semantic")),
             similarity_threshold: Some(0.6),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some("Paragraphs".to_string()),
-            comparison_scope: Some("Global".to_string()),
+            split_strategy: Some(String::from("Paragraphs")),
+            comparison_scope: Some(String::from("Global")),
             min_length: Some(20),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
@@ -120,9 +122,10 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             language_detection: Some(true),
             encoding_normalization: Some(true),
             similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.3_f64,
-                position: 0.3_f64,
-                context: 0.4_f64,
+                frequency: 0.3,
+                position: 0.3,
+                context: 0.4,
+                strategy: WeightingStrategy::WeightedMean, // Average embedding similarity scores
             }),
             adaptive_thresholding: Some(true),
             config: Some(DynamicConfig::default()),
@@ -131,18 +134,18 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
 
     // 🟢 Strict Large Blocks (No Aggregation Needed)
     DedupStrategyPreset {
-        name: "Strict Large Blocks".to_string(),
-        description: "Looks for large duplicated character sequences (useful for code or logs)".to_string(),
+        name: String::from("Strict Large Blocks"),
+        description: String::from("Looks for large duplicated character sequences (useful for code or logs)"),
         settings: DedupStrategySettings {
-            similarity_aggregation: None,  // Exact match means no aggregation needed
-            similarity_method: Some("Exact".to_string()),
+            similarity_aggregation: None,  
+            similarity_method: Some(String::from("Exact")),
             similarity_threshold: Some(0.9),
             case_sensitive: Some(true),
             ignore_whitespace: Some(false),
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
-            split_strategy: Some("Characters".to_string()),
-            comparison_scope: Some("Global".to_string()),
+            split_strategy: Some(String::from("Characters")),
+            comparison_scope: Some(String::from("Global")),
             min_length: Some(50),
             use_parallel: Some(true),
             ignore_stopwords: Some(false),
@@ -151,42 +154,12 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             language_detection: Some(false),
             encoding_normalization: Some(false),
             similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.8_f64,
-                position: 0.1_f64,
-                context: 0.1_f64,
+                frequency: 0.8,
+                position: 0.1,
+                context: 0.1,
+                strategy: WeightingStrategy::Linear, // Direct matching, no weighting needed
             }),
             adaptive_thresholding: Some(false),
-            config: Some(DynamicConfig::default()),
-        },
-    },
-
-    // 🔵 Loose Paragraph Matching (Uses Semantic Similarity, Aggregation Needed)
-    DedupStrategyPreset {
-        name: "Loose Paragraph Matching".to_string(),
-        description: "Groups paragraphs that share a high-level similarity or partial overlap".to_string(),
-        settings: DedupStrategySettings {
-            similarity_aggregation: Some(SimilarityAggregation::Max),  // Uses the most similar part of text
-            similarity_method: Some("Semantic".to_string()),
-            similarity_threshold: Some(0.65),
-            case_sensitive: Some(false),
-            ignore_whitespace: Some(true),
-            ignore_punctuation: Some(true),
-            normalize_unicode: Some(true),
-            split_strategy: Some("Paragraphs".to_string()),
-            comparison_scope: Some("Global".to_string()),
-            min_length: Some(20),
-            use_parallel: Some(true),
-            ignore_stopwords: Some(true),
-            stemming: Some(true),
-            ngram_size: Some(2),
-            language_detection: Some(true),
-            encoding_normalization: Some(true),
-            similarity_weighting: Some(SimilarityWeighting {
-                frequency: 0.4_f64,
-                position: 0.2_f64,
-                context: 0.4_f64,
-            }),
-            adaptive_thresholding: Some(true),
             config: Some(DynamicConfig::default()),
         },
     },

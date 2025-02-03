@@ -56,15 +56,15 @@ impl TextVector {
     }
 
     pub fn calculate_similarity(&self, other: &TextVector) -> f64 {
-        match self.strategy.similarity_method {
-            SimilarityMethod::Exact => {
+        match self.strategy.similarity_method.as_deref().unwrap_or("exact") {
+            "exact" => {
                 if self.hash == other.hash {
                     1.0
                 } else {
                     0.0
                 }
             }
-            SimilarityMethod::Semantic => {
+            "semantic" => {
                 match (&self.doc_vector, &other.doc_vector) {
                     (Some(v1), Some(v2)) => {
                         let v1 = v1.vector.to_data();
@@ -74,7 +74,7 @@ impl TextVector {
                     _ => 0.0,
                 }
             }
-            SimilarityMethod::Levenshtein => {
+            "levenshtein" => {
                 let distance = strsim::levenshtein(&self.normalized_text, &other.normalized_text);
                 let max_len = self.normalized_text.len().max(other.normalized_text.len());
                 if max_len == 0 {
@@ -83,6 +83,7 @@ impl TextVector {
                     1.0 - (distance as f64 / max_len as f64)
                 }
             }
+            _ => 0.0, // Default to no similarity for unknown methods
         }
     }
 
