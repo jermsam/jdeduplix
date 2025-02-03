@@ -4,7 +4,7 @@ pub struct SmartClassifier;
 use std::collections::HashSet;
 use rayon::prelude::*;
 use crate::core::semantic::SemanticAnalyzer;
-use crate::state::{DedupStrategySettings, SplitStrategy};
+use crate::state::{DedupStrategySettings, SplitStrategy, ComparisonScope};
 use crate::config::DynamicConfig;
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
@@ -114,14 +114,15 @@ impl TextClassifier {
         normalized
     }
 
-    fn split_text(&self, text: &str) -> Vec<String> {
-        match self.strategy.split_strategy {
+    fn split_text_by_strategy(&self, text: &str, strategy: SplitStrategy) -> Vec<String> {
+        match strategy {
             SplitStrategy::Characters => text.chars().map(|c| c.to_string()).collect(),
             SplitStrategy::Words => text.split_whitespace().map(|s| s.to_string()).collect(),
             SplitStrategy::Sentences => {
                 let delimiters = self.config.merge_sentence_delimiters();
                 text.split(|c| delimiters.contains(&c))
                     .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
                     .collect()
             }
             SplitStrategy::Paragraphs => {
@@ -132,7 +133,75 @@ impl TextClassifier {
                     .collect()
             }
             SplitStrategy::WholeText => vec![text.to_string()],
-            _ => vec![text.to_string()],
+        }
+    }
+
+    /// Split text into the current analysis units
+    fn split_text(&self, text: &str) -> Vec<String> {
+        self.split_text_by_strategy(text, self.strategy.split_strategy)
+    }
+
+    /// Get the indices of units that belong to the same containing scope
+    fn get_local_scope_units(&self, text: &str, current_idx: usize) -> Vec<usize> {
+        let current_units = self.split_text(text);
+        if current_idx >= current_units.len() {
+            return vec![];
+        }
+
+        match self.strategy.split_strategy {
+            SplitStrategy::Characters => {
+                // For characters, get all characters in the same word
+                let words = text.split_whitespace().collect::<Vec<_>>();
+                let mut char_pos = 0;
+                for word in words {
+                    let word_chars = word.chars().count();
+                    if char_pos <= current_idx && current_idx < char_pos + word_chars {
+                        return (char_pos..char_pos + word_chars).collect();
+                    }
+                    char_pos += word_chars + 1; // +1 for space
+                }
+                vec![current_idx] // Fallback to just the current character
+            }
+            SplitStrategy::Words => {
+                // For words, get all words in the same sentence
+                let sentences = text.split(|c| self.config.merge_sentence_delimiters().contains(&c))
+                    .filter(|s| !s.trim().is_empty())
+                    .collect::<Vec<_>>();
+                
+                let mut word_pos = 0;
+                for sentence in sentences {
+                    let sentence_words = sentence.split_whitespace().collect::<Vec<_>>();
+                    if word_pos <= current_idx && current_idx < word_pos + sentence_words.len() {
+                        return (word_pos..word_pos + sentence_words.len()).collect();
+                    }
+                    word_pos += sentence_words.len();
+                }
+                vec![current_idx] // Fallback to just the current word
+            }
+            SplitStrategy::Sentences => {
+                // For sentences, get all sentences in the same paragraph
+                let paragraphs = text.split(self.config.get_paragraph_delimiters())
+                    .filter(|s| !s.trim().is_empty())
+                    .collect::<Vec<_>>();
+                
+                let mut sentence_pos = 0;
+                for paragraph in paragraphs {
+                    let paragraph_sentences = paragraph
+                        .split(|c| self.config.merge_sentence_delimiters().contains(&c))
+                        .filter(|s| !s.trim().is_empty())
+                        .collect::<Vec<_>>();
+                    
+                    if sentence_pos <= current_idx && current_idx < sentence_pos + paragraph_sentences.len() {
+                        return (sentence_pos..sentence_pos + paragraph_sentences.len()).collect();
+                    }
+                    sentence_pos += paragraph_sentences.len();
+                }
+                vec![current_idx] // Fallback to just the current sentence
+            }
+            SplitStrategy::Paragraphs | SplitStrategy::WholeText => {
+                // For paragraphs or whole text, compare with everything
+                (0..current_units.len()).collect()
+            }
         }
     }
 
@@ -178,7 +247,7 @@ impl TextClassifier {
             return vec![];
         }
 
-        let threshold = self.strategy.similarity_threshold.unwrap_or(0.8); // Default to 0.8 if no threshold is specified
+        let threshold = self.strategy.similarity_threshold.unwrap_or(0.8);
         let use_parallel = self.strategy.use_parallel.unwrap_or_default();
 
         // First, prepare all the texts in a sequential manner
@@ -211,45 +280,92 @@ impl TextClassifier {
                 .collect()
         };
 
-        // Reduce phase: Group similar texts
+        // Reduce phase: Group similar texts based on comparison scope
         let mut groups: Vec<Vec<usize>> = Vec::new();
         let mut processed: HashSet<usize> = HashSet::new();
 
-        for (i, words1) in features.iter() {
-            if processed.contains(i) {
-                continue;
-            }
+        match self.strategy.comparison_scope {
+            ComparisonScope::Global => {
+                // Global comparison: Compare each text with all others
+                for (i, words1) in features.iter() {
+                    if processed.contains(i) {
+                        continue;
+                    }
 
-            let mut group = vec![*i];
-            processed.insert(*i);
+                    let mut group = vec![*i];
+                    processed.insert(*i);
 
-            // Find similar texts
-            for (j, words2) in features.iter().skip(*i + 1) {
-                if processed.contains(j) {
-                    continue;
+                    // Find similar texts
+                    for (j, words2) in features.iter().skip(*i + 1) {
+                        if processed.contains(j) {
+                            continue;
+                        }
+
+                        if self.are_texts_similar(words1, words2, threshold) {
+                            group.push(*j);
+                            processed.insert(*j);
+                        }
+                    }
+
+                    if group.len() > 1 {
+                        groups.push(group);
+                    }
                 }
-
-                // Calculate Jaccard similarity
-                let intersection = words1.intersection(words2).count();
-                let union = words1.union(words2).count();
-                let similarity = if union > 0 {
-                    intersection as f64 / union as f64
-                } else {
-                    0.0
-                };
-
-                if similarity >= threshold {
-                    group.push(*j);
-                    processed.insert(*j);
-                }
             }
+            ComparisonScope::Local => {
+                // Local comparison: Compare each text only with units in the same containing scope
+                for i in 0..features.len() {
+                    if processed.contains(&i) {
+                        continue;
+                    }
 
-            if group.len() > 1 {
-                groups.push(group);
+                    let mut group = vec![i];
+                    processed.insert(i);
+
+                    // Get all units that belong to the same containing scope
+                    let scope_units = self.get_local_scope_units(&prepared_texts[i].1, i);
+
+                    // Compare with texts within the same containing unit
+                    for &j in &scope_units {
+                        if i != j && !processed.contains(&j) && j < features.len() {
+                            if self.are_texts_similar(&features[i].1, &features[j].1, threshold) {
+                                group.push(j);
+                                processed.insert(j);
+                            }
+                        }
+                    }
+
+                    if group.len() > 1 {
+                        groups.push(group);
+                    }
+                }
             }
         }
 
         groups
+    }
+
+    /// Helper function to check if two texts are similar based on their features
+    fn are_texts_similar(&self, words1: &HashSet<String>, words2: &HashSet<String>, threshold: f64) -> bool {
+        let intersection = words1.intersection(words2).count();
+        let union = words1.union(words2).count();
+        
+        if union == 0 {
+            return false;
+        }
+        
+        (intersection as f64 / union as f64) >= threshold
+    }
+
+    /// Calculate the appropriate window size based on split strategy
+    fn get_local_window_size(&self) -> usize {
+        match self.strategy.split_strategy {
+            SplitStrategy::Characters => 50,    // Characters are small, use larger window
+            SplitStrategy::Words => 20,         // Words are medium, use medium window
+            SplitStrategy::Sentences => 10,     // Sentences are larger, use smaller window
+            SplitStrategy::Paragraphs => 5,     // Paragraphs are largest, use smallest window
+            SplitStrategy::WholeText => 3,      // When comparing whole texts, use very small window
+        }
     }
 
     /// Update the strategy

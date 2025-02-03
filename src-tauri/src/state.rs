@@ -49,6 +49,12 @@ pub enum SplitStrategy {
     WholeText,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ComparisonScope {
+    Local,
+    Global,
+}
+
 // /// Options for weighting the similarity.
 /// Defines different strategies for adjusting similarity scores.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,7 +83,7 @@ pub struct DedupStrategySettings {
     pub ignore_punctuation: Option<bool>,
     pub normalize_unicode: Option<bool>,
     pub split_strategy: SplitStrategy,
-    pub comparison_scope: Option<String>,
+    pub comparison_scope: ComparisonScope,
     pub min_length: Option<usize>,
     pub similarity_threshold: Option<f64>,
     pub similarity_method: Option<String>,
@@ -102,7 +108,7 @@ impl Default for DedupStrategySettings {
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
             split_strategy: SplitStrategy::Words,
-            comparison_scope: Some("Global".to_string()),
+            comparison_scope: ComparisonScope::Global,
             min_length: Some(10),
             similarity_threshold: Some(0.8),
             similarity_method: Some("Exact".to_string()),
