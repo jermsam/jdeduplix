@@ -19,7 +19,7 @@ serde_json = "1.0"
 tauri = { version = "2.2.5", features = [] }
 tauri-plugin-shell = { version = "2.0.0-rc.4" }
 levenshtein = "1.0.5"
-dirs = "5.0"
+dirs = "6.0.0"
 tokio = { version = "1.35", features = ["full"] }
 
 # Error Handling
@@ -31,8 +31,8 @@ sha2 = "0.10.8"                                  # SHA2 hashing
 blake3 = "1.5.0"                                 # BLAKE3 hashing
 
 # Text Processing
-strsim = "0.10.0"                                # Additional string similarity metrics
-unicode-segmentation = "1.10.1"                  # Better text segmentation
+strsim = "0.11.1"                                # Additional string similarity metrics
+unicode-segmentation = "1.12.0"                  # Better text segmentation
 rust-stemmers = "1.2.0"                          # Word stemming for better matching
 unicode-normalization = "0.1.22"                 # Unicode normalization
 symbolic_expressions = "5.0.3"                   # Advanced pattern matching
@@ -40,21 +40,18 @@ smartstring = "1.0.1"                            # Memory-efficient string handl
 fst = "0.4"                                      # Fast fuzzy string matching
 whatlang = "0.16"                                # Language detection
 fingerprint = "0.0.3"                            # Text fingerprinting
-hashbrown = "0.14"                               # High performance hashmap
+hashbrown = "0.15.2"                               # High performance hashmap
 rust-tfidf = "1.1.1"                            # TF-IDF calculations
 simsearch = "0.2.4"
-ureq = { version = "2.9.1", features = ["tls"] } # HTTP client for downloading models
+ureq = { version = "2.12.1", features = ["tls"] } # HTTP client for downloading models
 hex = "0.4.3"                                    # Hex encoding/decoding
 rayon = "1.8.0"                                  # Parallel processing
-stop-words = "0.8.0"
-
-# Performance & Concurrency
-dashmap = "5.5.3"                                # Thread-safe concurrent HashMap
-lru = "0.12.1"                                   # LRU cache
+stop-words = "0.8.1"                             # Stop words
+dashmap = "6.1.0"                                # Thread-safe concurrent HashMap
+lru = "0.13.0"                                   # LRU cache
+tokenizers = "0.21.0"                            # Hugging Face tokenizers
 memmap2 = "0.9.0"                                # Memory mapping for large files
 parking_lot = "0.12.1"                           # Better Mutex implementation
-burn = { version = "0.16.0", features = ["wgpu", "train", "tch"] }
-burn-autodiff = "0.16.0"
 
 # State Management
 state_machine_future = "0.2.0"                   # Async state machine for processing
@@ -65,13 +62,12 @@ futures = "0.3"                                 # Future traits and utilities
 # Utilities
 uuid = { version = "1.6.1", features = ["v4"] }  # Unique identifiers
 
-# Machine Learning and AI
-
 # Tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokenizers = "0.21.0"
-rust-bert = "0.23.0"
+
+# Machine Learning and AI
+burn = { version = "0.16.0", features = ["wgpu", "autodiff", "ndarray"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

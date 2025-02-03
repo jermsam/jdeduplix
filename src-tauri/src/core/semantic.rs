@@ -1,257 +1,435 @@
-use serde::{Deserialize, Serialize};
-use burn::backend::wgpu::WgpuDevice;
-use burn::tensor::{backend::Backend, Tensor};
-use burn::module::Module;
-use burn::nn::{
-    transformer::{TransformerEncoder, TransformerEncoderConfig},
-    Linear, LayerNorm, Dropout, ReLU,
-};
+//! Semantic analysis module using Burn, Tokenizers, and NLP utilities.
+
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use std::f64::consts::E;
+
 use once_cell::sync::Lazy;
-use tokenizers::tokenizer::{Tokenizer, Encoding};
 use tokenizers::models::wordpiece::WordPiece;
-use tokenizers::normalizers::{Normalizer, BertNormalizer};
+use tokenizers::normalizers::BertNormalizer;
 use tokenizers::pre_tokenizers::bert::BertPreTokenizer;
-use stopwords::{Stopwords, Language};
+use tokenizers::Tokenizer;
+
+use burn::backend::ndarray::{NdArray, NdArrayDevice};
+use burn::nn::transformer::{TransformerEncoder, TransformerEncoderConfig};
+use burn::tensor::Tensor;
+
+use whatlang::{detect, Lang as Language};
+use stop_words::{get, LANGUAGE as StopLanguage};
 use rust_stemmers::{Algorithm, Stemmer};
-use std::collections::HashMap;
-use whatlang::detect;
+use unicode_normalization::UnicodeNormalization;
 
-type DefaultBackend = WgpuDevice;
+use crate::state::{DedupStrategySettings, SimilarityAggregation, SimilarityWeighting, WeightingStrategy};
 
+
+// Type aliases for convenience.
+type DefaultBackend = NdArray;
+type DefaultDevice = NdArrayDevice;
+
+// Model constants.
 const EMBEDDING_DIM: usize = 768; // BERT-base dimension
 const MAX_SEQUENCE_LENGTH: usize = 512;
 const VOCAB_SIZE: usize = 30522; // BERT vocabulary size
 
+// ---------------------------------------------------------------------
+// Static Resources
+// ---------------------------------------------------------------------
+
+/// Lazily initialized tokenizer with WordPiece, Bert normalizer and pre-tokenizer.
 static TOKENIZER: Lazy<Tokenizer> = Lazy::new(|| {
-    let mut tokenizer = Tokenizer::new(
-        WordPiece::from_file("path/to/vocab.txt")
-            .unwrap_or_else(|_| WordPiece::empty())
-    );
-    
-    tokenizer.with_normalizer(Arc::new(BertNormalizer::new(true, true, true, true)));
-    tokenizer.with_pre_tokenizer(Arc::new(BertPreTokenizer));
-    
+    let wordpiece = WordPiece::builder()
+        .unk_token("[UNK]".into())
+        .max_input_chars_per_word(100)
+        .continuing_subword_prefix("##".into())
+        .build()
+        .expect("Failed to build WordPiece model");
+
+    let mut tokenizer = Tokenizer::new(wordpiece);
+    // Configure the normalizer and pre-tokenizer for BERT.
+    let normalizer = BertNormalizer::new(true, true, Some(true), true);
+    tokenizer.with_normalizer(Some(normalizer));
+    tokenizer.with_pre_tokenizer(Some(BertPreTokenizer));
     tokenizer
 });
 
-static STOPWORDS: Lazy<HashMap<Language, Stopwords>> = Lazy::new(|| {
+/// Stopwords mapped by language.
+static STOPWORDS: Lazy<HashMap<Language, HashSet<String>>> = Lazy::new(|| {
     let mut map = HashMap::new();
-    map.insert(Language::English, Stopwords::english());
-    map.insert(Language::French, Stopwords::french());
-    map.insert(Language::Spanish, Stopwords::spanish());
-    map.insert(Language::German, Stopwords::german());
-    // Add more languages as needed
+    map.insert(Language::Eng, get(StopLanguage::English).into_iter().collect());
+    map.insert(Language::Fra, get(StopLanguage::French).into_iter().collect());
+    map.insert(Language::Spa, get(StopLanguage::Spanish).into_iter().collect());
+    map.insert(Language::Deu, get(StopLanguage::German).into_iter().collect());
+    map.insert(Language::Rus, get(StopLanguage::Russian).into_iter().collect());
+    map.insert(Language::Por, get(StopLanguage::Portuguese).into_iter().collect());
+    map.insert(Language::Ita, get(StopLanguage::Italian).into_iter().collect());
     map
 });
 
-/// Neural network for text encoding
-#[derive(Module)]
+
+
+/// A text encoder using a transformer model.
+#[derive(Debug)]
 pub struct TextEncoder {
-    embedding: Linear<DefaultBackend>,
-    position_embedding: Tensor<DefaultBackend, 2>,
     encoder: TransformerEncoder<DefaultBackend>,
-    layer_norm: LayerNorm<DefaultBackend>,
-    dropout: Dropout,
-    pooler: Linear<DefaultBackend>,
+    tokenizer: Arc<Tokenizer>,
+    device: DefaultDevice,
 }
 
 impl TextEncoder {
+    /// Creates a new `TextEncoder` with a default transformer encoder and tokenizer.
     pub fn new() -> Self {
-        let device = DefaultBackend::default();
-        
-        // Initialize embeddings
-        let embedding = Linear::new(VOCAB_SIZE, EMBEDDING_DIM);
-        let position_embedding = Tensor::zeros((MAX_SEQUENCE_LENGTH, EMBEDDING_DIM));
-        
-        // Initialize transformer
-        let encoder_config = TransformerEncoderConfig::new(
+        let device = DefaultDevice::default();
+
+        // Configure and initialize transformer encoder.
+        let config = TransformerEncoderConfig::new(
             EMBEDDING_DIM,
-            12, // num_heads (BERT-base)
-            12, // num_layers (BERT-base)
-            3072, // ff_dim (BERT-base)
+            12,              // number of attention heads
+            12,              // number of layers
+            4 * EMBEDDING_DIM, // feedforward dimension
         );
-        let encoder = TransformerEncoder::new(&encoder_config);
-        
-        // Output layers
-        let layer_norm = LayerNorm::new(EMBEDDING_DIM);
-        let dropout = Dropout::new(0.1);
-        let pooler = Linear::new(EMBEDDING_DIM, EMBEDDING_DIM);
-        
+        let encoder = config.init(&device);
+
         Self {
-            embedding,
-            position_embedding,
             encoder,
-            layer_norm,
-            dropout,
-            pooler,
+            tokenizer: Arc::new(TOKENIZER.clone()),
+            device,
         }
     }
+
+    /// Encodes text into a tensor.
+    pub fn encode_text(&self, text: &str) -> Tensor<DefaultBackend, 2> {
+        let encoding = self.tokenizer.encode(text, true)
+            .expect("Failed to encode text");
     
-    fn forward(&self, input_ids: Tensor<DefaultBackend, 2>, attention_mask: Option<Tensor<DefaultBackend, 2>>) -> Tensor<DefaultBackend, 2> {
-        // Embed tokens
-        let embedded = self.embedding.forward(input_ids);
+        // Collect into a Vec<i64> directly.
+        let input_ids: Vec<i64> = encoding.get_ids()
+        .iter()
+        .map(|&id| id as i64)
+        .collect();
+    
+        // Pass the Vec directly.
+        Tensor::<DefaultBackend, 2>::from_data(input_ids.as_slice(), &Default::default())
+            .reshape([1, input_ids.len()])
+    }
+
+    /// Calculates the cosine similarity between two encoded texts.
+    pub fn calculate_similarity(
+        &self,
+        encoding1: &Tensor<DefaultBackend, 2>,
+        encoding2: &Tensor<DefaultBackend, 2>,
+        _aggregation: Option<SimilarityAggregation>,
+    ) -> f64 {
+        // Clone tensors before operations
+        let e1 = encoding1.clone();
+        let e2 = encoding2.clone();
         
-        // Add position embeddings
-        let seq_length = embedded.shape()[0];
-        let position_emb = self.position_embedding.slice((0..seq_length, ..));
-        let hidden_states = embedded + position_emb;
+        // Compute dot product on owned tensors
+        let dot_product = e1.matmul(e2).sum();
+    
+        // Compute norms (L2 norm) on references since we can reuse the originals
+        let norm1 = encoding1.clone().powf_scalar(2.0).sum().sqrt();
+        let norm2 = encoding2.clone().powf_scalar(2.0).sum().sqrt();
+    
+        // Compute denominator
+        let denominator = norm1 * norm2;
+        let denominator_scalar = denominator.into_scalar();
         
-        // Apply transformer layers
-        let encoded = self.encoder.forward(hidden_states, attention_mask);
+        // Early return for zero denominator
+        if denominator_scalar == 0.0 {
+            return 0.0;
+        }
+    
+        // Compute similarity
+
+                // Apply aggregation method if multiple values exist
+                let final_similarity = match _aggregation.unwrap_or(SimilarityAggregation::Mean) {
+                    SimilarityAggregation::First => {
+                    let similarity = dot_product.into_scalar() / denominator_scalar;
+                    
+                    println!("Calculated similarity: {}", similarity);
+
+                    similarity as f64
+                    },
+                    SimilarityAggregation::Mean => {
+                        let similarity_tensor = dot_product / denominator_scalar;
+                        let similarities_result = similarity_tensor.into_data().to_vec();
+                        
+                        let similarities = match similarities_result {
+                            Ok(vec) => vec,
+                            Err(_) => {
+                                println!("Error extracting similarity values.");
+                                return 0.0;
+                            }
+                        };
+                        
+                        similarities.iter().sum::<f64>() / similarities.len() as f64
+                    }
+                    SimilarityAggregation::Max => {
+                        let similarity_tensor = dot_product / denominator_scalar;
+                        let similarities_result = similarity_tensor.into_data().to_vec();
+                        
+                        let similarities = match similarities_result {
+                            Ok(vec) => vec,
+                            Err(_) => {
+                                println!("Error extracting similarity values.");
+                                return 0.0;
+                            }
+                        };
+                        similarities.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+                    },
+                    SimilarityAggregation::Min => {
+                        let similarity_tensor = dot_product / denominator_scalar;
+                        let similarities_result = similarity_tensor.into_data().to_vec();
+                        
+                        let similarities = match similarities_result {
+                            Ok(vec) => vec,
+                            Err(_) => {
+                                println!("Error extracting similarity values.");
+                                return 0.0;
+                            }
+                        };
+                        
+                        similarities.iter().cloned().fold(f64::INFINITY, f64::min)
+                    },
+                };
         
-        // Pool and normalize
-        let pooled = self.pooler.forward(encoded.mean_dim(0, true));
-        let normalized = self.layer_norm.forward(pooled);
+                println!("Calculated similarity: {}", final_similarity);
         
-        self.dropout.forward(normalized)
+                final_similarity
     }
 }
 
-/// Semantic analyzer for text similarity using neural networks
+/// Represents the vectorized document along with metadata.
+#[derive(Debug, Clone)]
+pub struct DocumentVector {
+    pub vector: Tensor<DefaultBackend, 2>,
+    pub language: Option<Language>,
+    pub token_count: usize,
+}
+
+
+/// A semantic analyzer that wraps a text encoder and additional NLP utilities.
+#[derive(Debug)]
 pub struct SemanticAnalyzer {
-    device: DefaultBackend,
     encoder: TextEncoder,
-    stemmers: HashMap<String, Stemmer>,
-}
-
-impl Default for SemanticAnalyzer {
-    fn default() -> Self {
-        Self::new()
-    }
+    language_cache: HashMap<String, Language>,
 }
 
 impl SemanticAnalyzer {
+    /// Creates a new `SemanticAnalyzer`.
     pub fn new() -> Self {
-        let device = DefaultBackend::default();
-        let encoder = TextEncoder::new();
-        
-        // Initialize stemmers for different languages
-        let mut stemmers = HashMap::new();
-        stemmers.insert("en".to_string(), Stemmer::create(Algorithm::English));
-        stemmers.insert("fr".to_string(), Stemmer::create(Algorithm::French));
-        stemmers.insert("es".to_string(), Stemmer::create(Algorithm::Spanish));
-        stemmers.insert("de".to_string(), Stemmer::create(Algorithm::German));
-        // Add more languages as needed
-        
         Self {
-            device,
-            encoder,
-            stemmers,
+            encoder: TextEncoder::new(),
+            language_cache: HashMap::new(),
         }
     }
 
-    /// Preprocess and tokenize text
-    fn tokenize(&self, text: &str, lang: Option<&str>) -> Encoding {
-        // Apply stemming if language is specified
-        let processed_text = if let Some(lang_code) = lang {
-            if let Some(stemmer) = self.stemmers.get(lang_code) {
-                text.split_whitespace()
+    /// Detects the language of the given text, using cache if available.
+    pub fn detect_language(&mut self, text: &str) -> Option<Language> {
+        if let Some(&lang) = self.language_cache.get(text) {
+            return Some(lang);
+        }
+
+        if let Some(info) = detect(text) {
+            self.language_cache.insert(text.to_string(), info.lang());
+            Some(info.lang())
+        } else {
+            None
+        }
+    }
+
+    /// Preprocesses text based on the provided settings.
+    pub fn preprocess_text(
+        &self,
+        text: &str,
+        lang: Option<Language>,
+        settings: &DedupStrategySettings,
+    ) -> String {
+        let mut processed = if settings.case_sensitive.unwrap_or(false) {
+            text.to_string()
+        } else {
+            text.to_lowercase()
+        };
+
+        // Normalize whitespace if required.
+        if !settings.ignore_whitespace.unwrap_or(false) {
+            processed = processed.split_whitespace().collect::<Vec<_>>().join(" ");
+        }
+
+        // Remove punctuation if enabled.
+        if settings.ignore_punctuation.unwrap_or(false) {
+            processed = processed.chars().filter(|c| !c.is_ascii_punctuation()).collect();
+        }
+
+        // Normalize Unicode if requested.
+        if settings.normalize_unicode.unwrap_or(false) {
+            processed = processed.nfc().collect();
+        }
+
+        // Remove stopwords if enabled.
+        if settings.ignore_stopwords.unwrap_or(false) {
+            if let Some(lang) = lang {
+                if let Some(stopwords) = STOPWORDS.get(&lang) {
+                    processed = processed
+                        .split_whitespace()
+                        .filter(|word| !stopwords.contains(*word))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                }
+            }
+        }
+
+        // Apply stemming if enabled.
+        if settings.stemming.unwrap_or(false) {
+            if let Some(lang) = lang {
+                let stemmer = match lang {
+                    Language::Eng => Stemmer::create(Algorithm::English),
+                    Language::Fra => Stemmer::create(Algorithm::French),
+                    Language::Spa => Stemmer::create(Algorithm::Spanish),
+                    Language::Por => Stemmer::create(Algorithm::Portuguese),
+                    Language::Ita => Stemmer::create(Algorithm::Italian),
+                    Language::Deu => Stemmer::create(Algorithm::German),
+                    Language::Rus => Stemmer::create(Algorithm::Russian),
+                    _ => return processed, // Unsupported language; return unstemmed.
+                };
+
+                processed = processed
+                    .split_whitespace()
                     .map(|word| stemmer.stem(word).to_string())
                     .collect::<Vec<_>>()
-                    .join(" ")
-            } else {
-                text.to_string()
+                    .join(" ");
             }
+        }
+
+        // Create n-grams if requested.
+        if let Some(n) = settings.ngram_size {
+            if n > 1 {
+                let words: Vec<&str> = processed.split_whitespace().collect();
+              // Convert n to usize
+                let ngrams: Vec<String> = (0..=words.len().saturating_sub(n))
+                    .map(|i| words[i..i + n].join(" "))
+                    .collect();
+                processed = ngrams.join(" ");
+            }
+        }
+
+        // Filter out short words if a minimum length is specified.
+        if let Some(min_len) = settings.min_length {
+            processed = processed
+                .split_whitespace()
+                .filter(|word| word.len() >= min_len)
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
+
+        processed
+    }
+
+    /// Encodes text into a document vector.
+    pub fn encode(&mut self, text: &str, settings: &DedupStrategySettings) -> DocumentVector {
+        let lang = if settings.language_detection.unwrap_or(false) {
+            self.detect_language(text)
         } else {
-            text.to_string()
+            None
         };
-        
-        TOKENIZER.encode(processed_text, true).unwrap()
-    }
 
-    /// Create attention mask for the sequence
-    fn create_attention_mask(&self, encoding: &Encoding) -> Tensor<DefaultBackend, 2> {
-        let mask: Vec<f32> = encoding.get_ids()
-            .iter()
-            .map(|&id| if id == 0 { 0.0 } else { 1.0 })
-            .collect();
-            
-        Tensor::from_vec(mask, (mask.len(), 1))
-    }
+        let processed_text = self.preprocess_text(text, lang, settings);
+        let vector = self.encoder.encode_text(&processed_text);
+        let token_count = processed_text.split_whitespace().count();
 
-    /// Encode text into a vector representation
-    fn encode_text(&self, text: &str, lang: Option<&str>) -> Tensor<DefaultBackend, 2> {
-        let encoding = self.tokenize(text, lang);
-        let attention_mask = self.create_attention_mask(&encoding);
-        
-        let input_ids = Tensor::from_vec(
-            encoding.get_ids().iter().map(|&id| id as f32).collect(),
-            (encoding.get_ids().len(), 1),
-        );
-        
-        self.encoder.forward(input_ids, Some(attention_mask))
-    }
-
-    /// Detect the language of the input text
-    fn detect_language(&self, text: &str) -> Option<String> {
-        detect(text).map(|info| info.lang().code().to_string())
-    }
-
-    /// Encode document for vector storage with automatic language detection
-    pub fn encode(&self, text: &str, lang: Option<&str>) -> DocumentVector {
-        let detected_lang = lang.map(String::from).or_else(|| self.detect_language(text));
-        let encoding = self.encode_text(text, detected_lang.as_deref());
-        let vector = encoding.to_vec();
-        
         DocumentVector {
-            text: text.to_string(),
             vector,
+            language: lang,
+            token_count,
         }
     }
 
-    /// Calculate semantic similarity between two texts with advanced features
+    /// Calculates the semantic similarity between two texts.
     pub fn calculate_semantic_similarity(
-        &self,
+        &mut self,
         text1: &str,
         text2: &str,
-        lang: Option<&str>,
-        use_stopwords: bool,
+        settings: &DedupStrategySettings,
     ) -> f64 {
-        // Remove stopwords if enabled
-        let (processed1, processed2) = if use_stopwords {
-            let stopwords = lang
-                .and_then(|l| match l {
-                    "en" => Some(Language::English),
-                    "fr" => Some(Language::French),
-                    "es" => Some(Language::Spanish),
-                    "de" => Some(Language::German),
-                    _ => None,
-                })
-                .and_then(|l| STOPWORDS.get(&l));
-                
-            let process = |text: &str, sw: Option<&Stopwords>| {
-                if let Some(stopwords) = sw {
-                    text.split_whitespace()
-                        .filter(|word| !stopwords.is_stopword(word))
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                } else {
-                    text.to_string()
-                }
-            };
-            
-            (process(text1, stopwords), process(text2, stopwords))
+        let doc1 = self.encode(text1, settings);
+        let doc2 = self.encode(text2, settings);
+
+        // Apply a language penalty if language detection is enabled.
+        let language_penalty = if settings.language_detection.unwrap_or(false) {
+            match (doc1.language, doc2.language) {
+                (Some(l1), Some(l2)) if l1 != l2 => 0.8, // 20% penalty for different languages.
+                _ => 1.0,
+            }
         } else {
-            (text1.to_string(), text2.to_string())
+            1.0
         };
-        
-        // Encode both texts
-        let encoding1 = self.encode_text(&processed1, lang);
-        let encoding2 = self.encode_text(&processed2, lang);
-        
-        // Calculate cosine similarity with L2 normalization
-        let normalized1 = encoding1 / encoding1.square().sum().sqrt();
-        let normalized2 = encoding2 / encoding2.square().sum().sqrt();
-        
-        let similarity = normalized1.matmul(normalized2.transpose()).scalar();
-        
-        // Convert to f64 and ensure it's between 0 and 1
-        (similarity as f64).max(0.0).min(1.0)
+
+        let mut similarity = self
+            .encoder
+            .calculate_similarity(&doc1.vector, &doc2.vector, settings.similarity_aggregation);
+
+        // Enforce a similarity threshold if specified.
+        if let Some(threshold) = settings.similarity_threshold {
+            similarity = if similarity >= threshold { similarity } else { 0.0 };
+        }
+
+        // Apply similarity weighting if specified.
+        // 🟢 Apply similarity weighting if available
+        if let Some(weighting) = &settings.similarity_weighting {
+            similarity = apply_weighting(similarity, weighting);
+        }
+
+        similarity * language_penalty
+    }
+
+
+}
+
+/// **Applies similarity weighting based on the given strategy.**
+fn apply_weighting(similarity: f64, weighting: &SimilarityWeighting) -> f64 {
+    let adjusted_similarity = match weighting.strategy {
+        WeightingStrategy::Linear => similarity,
+        WeightingStrategy::Quadratic => similarity * similarity,
+        WeightingStrategy::Exponential => E.powf(similarity) - 1.0,
+        WeightingStrategy::Logarithmic => if similarity > 0.0 { similarity.ln() + 1.0 } else { 0.0 },
+    };
+
+    // Normalize and apply custom weighting factors
+    let weight_sum = weighting.frequency + weighting.position + weighting.context;
+    if weight_sum > 0.0 {
+        adjusted_similarity * (weight_sum / 3.0)
+    } else {
+        adjusted_similarity
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct DocumentVector {
-    pub text: String,
-    pub vector: Vec<f32>,
+// ---------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_semantic_similarity() {
+        let mut analyzer = SemanticAnalyzer::new();
+
+        let text1 = "The quick brown fox jumps over the lazy dog";
+        let text2 = "A fast brown fox leaps above a sleepy canine";
+        let default_settings = DedupStrategySettings::default();
+
+        let similarity = analyzer.calculate_semantic_similarity(text1, text2, &default_settings);
+        assert!(
+            similarity > 0.7,
+            "Similar sentences should have a high similarity score"
+        );
+
+        let text3 = "Completely unrelated text about programming computers";
+        let similarity = analyzer.calculate_semantic_similarity(text1, text3, &default_settings);
+        assert!(
+            similarity < 0.5,
+            "Different sentences should have a low similarity score"
+        );
+    }
 }

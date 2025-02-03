@@ -2,20 +2,14 @@
 pub struct SmartClassifier;
 
 use std::collections::HashSet;
+use rayon::prelude::*;
+use crate::core::semantic::{SemanticAnalyzer, DocumentVector};
+use crate::core::vector::TextDocument;
 use crate::state::DedupStrategySettings;
-use crate::core::semantic::SemanticAnalyzer;
-use strsim;
-use burn::backend::wgpu::WgpuDevice;
-use burn::backend::Autodiff;
-use burn::tensor::backend::Backend;
+use crate::config::DynamicConfig;
 use burn::module::Module;
-use burn::nn::{transformer, Linear, ReLU};
-use burn::tensor::{Tensor, Shape};
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
-use whatlang::detect as detect_language;
-use rayon::prelude::*;
-use crate::config::DynamicConfig;
 
 /// Text classifier for detecting duplicates
 pub struct TextClassifier {
@@ -27,7 +21,12 @@ pub struct TextClassifier {
 
 impl Default for TextClassifier {
     fn default() -> Self {
-        Self::new(DedupStrategySettings::default())
+        Self {
+            texts: Vec::new(),
+            strategy: DedupStrategySettings::default(),
+            semantic_analyzer: SemanticAnalyzer::default(),
+            config: DynamicConfig::default(),
+        }
     }
 }
 
@@ -36,9 +35,9 @@ impl TextClassifier {
     pub fn new(strategy: DedupStrategySettings) -> Self {
         Self {
             texts: Vec::new(),
-            strategy: strategy.clone(),
-            semantic_analyzer: SemanticAnalyzer::new(),
-            config: strategy.config.unwrap_or_default(),
+            strategy,
+            semantic_analyzer: SemanticAnalyzer::default(),
+            config: DynamicConfig::default(),
         }
     }
 
@@ -144,97 +143,31 @@ impl TextClassifier {
             return 0.0;
         }
 
-        // Language detection and comparison if enabled
-        if self.strategy.language_detection.unwrap_or(false) {
-            let lang1 = detect_language(text1);
-            let lang2 = detect_language(text2);
-            if let (Some(l1), Some(l2)) = (lang1, lang2) {
-                if l1.lang() != l2.lang() || !self.config.base.supported_languages.contains(&l1.lang().code().to_string()) {
-                    return 0.0;
-                }
-            }
-        }
-
-        // Normalize both texts using all enabled settings
         let normalized1 = self.normalize_text(text1);
         let normalized2 = self.normalize_text(text2);
 
-        // Split texts according to strategy
-        let split_texts1 = self.split_text(&normalized1);
-        let split_texts2 = self.split_text(&normalized2);
-
-        let base_similarity = match self.strategy.similarity_method.as_deref() {
-            Some("Exact") => {
-                if split_texts1 == split_texts2 { 1.0 } else { 0.0 }
-            }
-            Some("Levenshtein") => {
-                // Calculate similarity for each split part in parallel if enabled
-                let similarities: Vec<f64> = if self.strategy.use_parallel.unwrap_or(false) {
-                    split_texts1.par_iter()
-                        .zip(split_texts2.par_iter())
-                        .map(|(part1, part2)| {
-                            let distance = strsim::levenshtein(part1, part2);
-                            let max_len = part1.len().max(part2.len());
-                            if max_len > 0 {
-                                1.0 - (distance as f64 / max_len as f64)
-                            } else {
-                                0.0
-                            }
-                        })
-                        .collect()
-                } else {
-                    split_texts1.iter()
-                        .zip(split_texts2.iter())
-                        .map(|(part1, part2)| {
-                            let distance = strsim::levenshtein(part1, part2);
-                            let max_len = part1.len().max(part2.len());
-                            if max_len > 0 {
-                                1.0 - (distance as f64 / max_len as f64)
-                            } else {
-                                0.0
-                            }
-                        })
-                        .collect()
-                };
-
-                if similarities.is_empty() {
-                    0.0
-                } else {
-                    similarities.iter().sum::<f64>() / similarities.len() as f64
+        match &self.strategy.similarity_method {
+            Some(method) => match method.as_str() {
+                "exact" => {
+                    if normalized1 == normalized2 {
+                        1.0
+                    } else {
+                        0.0
+                    }
                 }
-            }
-            Some("Semantic") => {
-                let ngram_size = self.strategy.ngram_size
-                    .unwrap_or_else(|| self.config.base.default_ngram_size);
-                let vec1 = self.semantic_analyzer.encode(&normalized1, Some(ngram_size));
-                let vec2 = self.semantic_analyzer.encode(&normalized2, Some(ngram_size));
-                
-                if let Some(weights) = &self.strategy.similarity_weighting {
-                    let freq_sim = vec1.frequency_similarity(&vec2) * weights.frequency;
-                    let pos_sim = vec1.position_similarity(&vec2) * weights.position;
-                    let ctx_sim = vec1.context_similarity(&vec2) * weights.context;
-                    freq_sim + pos_sim + ctx_sim
-                } else {
-                    vec1.similarity(&vec2)
+                "semantic" => {
+                    self.semantic_analyzer.calculate_semantic_similarity(
+                        &normalized1,
+                        &normalized2,
+                        &self.strategy
+                    )
                 }
+                "levenshtein" => {
+                    levenshtein::levenshtein(&normalized1, &normalized2) as f64
+                }
+                _ => 0.0
             }
-            _ => 0.0,
-        };
-
-        // Apply adaptive thresholding if enabled
-        if self.strategy.adaptive_thresholding.unwrap_or(false) {
-            let avg_len = (text1.len() + text2.len()) as f64 / 2.0;
-            let len_factor = (avg_len / 100.0).min(1.0);
-            
-            let adjusted_similarity = if len_factor < 0.5 {
-                base_similarity * (1.0 + (0.5 - len_factor))
-            } else {
-                base_similarity * (1.0 - (len_factor - 0.5) * 0.2)
-            };
-
-            adjusted_similarity.min(1.0).max(0.0)
-        } else {
-            base_similarity
+            None => 0.0
         }
     }
 

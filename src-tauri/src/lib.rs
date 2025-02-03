@@ -3,6 +3,7 @@
 pub mod commands;
 pub mod core;
 pub mod state;
+pub mod config;
 pub use state::*;
 pub mod presets;
 

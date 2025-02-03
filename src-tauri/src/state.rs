@@ -1,9 +1,34 @@
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
-use crate::config::DynamicConfig;
-use rayon::prelude::*;
 use std::collections::{HashSet, HashMap};
 use whatlang::{detect, Lang};
+use crate::config::DynamicConfig;
+use crate::core::classifier::TextClassifier;
+use crate::core::semantic::SemanticAnalyzer;
+use rayon::prelude::*;
+
+// ---------------------------------------------------------------------
+// Core Types
+// ---------------------------------------------------------------------
+
+/// Strategy for aggregating similarity values from the tensor
+#[derive(Debug, Clone,Copy, Serialize, Deserialize)]
+pub enum SimilarityAggregation {
+    /// Use only the first similarity value
+    First,
+    /// Take the average of all similarity values
+    Mean,
+    /// Take the maximum similarity value
+    Max,
+    /// Take the minimum similarity value
+    Min,
+}
+
+impl Default for SimilarityAggregation {
+    fn default() -> Self {
+        SimilarityAggregation::First
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SimilarityMethod {
@@ -18,28 +43,41 @@ impl Default for SimilarityMethod {
     }
 }
 
+// /// Options for weighting the similarity.
+/// Defines different strategies for adjusting similarity scores.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum WeightingStrategy {
+    Linear,
+    Quadratic,
+    Exponential,
+    Logarithmic,
+}
+
+/// Custom similarity weighting based on text features.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimilarityWeighting {
-    pub frequency: f64,
-    pub position: f64,
-    pub context: f64,
+    pub frequency: f64, // Importance of word frequency in similarity
+    pub position: f64,  // Importance of word position
+    pub context: f64,   // Importance of context-based similarity
+    pub strategy: WeightingStrategy, // The strategy used to scale similarity
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DedupStrategySettings {
+    pub similarity_aggregation: Option<SimilarityAggregation>,
     pub case_sensitive: Option<bool>,
     pub ignore_whitespace: Option<bool>,
     pub ignore_punctuation: Option<bool>,
     pub normalize_unicode: Option<bool>,
     pub split_strategy: Option<String>,
     pub comparison_scope: Option<String>,
-    pub min_length: Option<u32>,
+    pub min_length: Option<usize>,
     pub similarity_threshold: Option<f64>,
     pub similarity_method: Option<String>,
     pub use_parallel: Option<bool>,
     pub ignore_stopwords: Option<bool>,
     pub stemming: Option<bool>,
-    pub ngram_size: Option<u32>,
+    pub ngram_size: Option<usize>,
     pub language_detection: Option<bool>,
     pub encoding_normalization: Option<bool>,
     pub similarity_weighting: Option<SimilarityWeighting>,
@@ -79,6 +117,7 @@ impl Default for DedupStrategySettings {
             similarity_weighting: None,
             adaptive_thresholding: Some(false),
             config: Some(DynamicConfig::default()),
+            similarity_aggregation: Some(SimilarityAggregation::First),
         }
     }
 }

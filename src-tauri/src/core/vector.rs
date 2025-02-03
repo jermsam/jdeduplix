@@ -7,8 +7,9 @@ use strsim::jaro_winkler;
 use crate::state::{ DedupStrategySettings, SimilarityMethod};
 use super::semantic::{SemanticAnalyzer, DocumentVector};
 use std::collections::HashMap;
+use burn::prelude::Tensor;
 
-
+/// A vectorized representation of a text document.
 #[derive(Debug, Serialize)]
 pub struct TextVector {
     pub text: String,
@@ -65,7 +66,11 @@ impl TextVector {
             }
             SimilarityMethod::Semantic => {
                 match (&self.doc_vector, &other.doc_vector) {
-                    (Some(v1), Some(v2)) => calculate_cosine_similarity(&v1.vector, &v2.vector) as f64,
+                    (Some(v1), Some(v2)) => {
+                        let v1 = v1.vector.to_data();
+                        let v2 = v2.vector.to_data();
+                        calculate_cosine_similarity(&v1.into_raw().into_iter().collect::<Vec<f32>>(), &v2.into_raw().into_iter().collect::<Vec<f32>>()) as f64
+                    }
                     _ => 0.0,
                 }
             }
@@ -127,11 +132,26 @@ impl TextDocument {
 
     pub fn update_vector(&mut self, analyzer: &SemanticAnalyzer) {
         let doc = analyzer.encode(&self.text, Some("en"));
-        self.embedding = Some(doc.vector);
+        let vec_data = doc.vector.to_data();
+        self.embedding = Some(vec_data.value.to_vec());
+    }
+
+    pub fn calculate_similarity(&self, other: &TextDocument, analyzer: &SemanticAnalyzer) -> f64 {
+        match (&self.embedding, &other.embedding) {
+            (Some(v1), Some(v2)) => {
+                let v1_tensor = Tensor::from_data(Data::from(v1.as_slice()), &DefaultDevice::default());
+                let v2_tensor = Tensor::from_data(Data::from(v2.as_slice()), &DefaultDevice::default());
+                let dot_product = v1_tensor.clone().matmul(v2_tensor.clone().transpose());
+                let norm1 = v1_tensor.clone().powf(v1_tensor).sum().sqrt();
+                let norm2 = v2_tensor.clone().powf(v2_tensor).sum().sqrt();
+                (dot_product.into_scalar() / (norm1.into_scalar() * norm2.into_scalar())) as f64
+            }
+            _ => analyzer.calculate_semantic_similarity(&self.text, &other.text, None, true)
+        }
     }
 
     pub fn similarity(&self, other: &TextDocument, analyzer: &SemanticAnalyzer) -> f64 {
-        analyzer.calculate_similarity(&self.text, &other.text) as f64
+        self.calculate_similarity(other, analyzer)
     }
 }
 
@@ -172,7 +192,7 @@ impl VectorStore {
                     continue;
                 }
 
-                let similarity = doc1.similarity(doc2, &self.analyzer);
+                let similarity = doc1.calculate_similarity(doc2, &self.analyzer);
                 if similarity >= threshold {
                     group.push(id2);
                     processed.insert(id2);

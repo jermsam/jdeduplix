@@ -1,23 +1,25 @@
-use crate::state::{DedupStrategyPreset, DedupStrategySettings, SimilarityMethod, SimilarityWeighting};
+use crate::state::{DedupStrategyPreset, DedupStrategySettings, SimilarityMethod, SimilarityWeighting, SimilarityAggregation};
 use crate::config::DynamicConfig;
 use std::collections::HashMap;
 
 // TODO: Should come from Typedb Database or a p2p store
 /// Predefined presets for common deduplication scenarios
 pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
+    // 🟢 Exact Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Exact Match"),
-        description: String::from("Find identical text, including spacing and punctuation"),
+        name: "Exact Match".to_string(),
+        description: "Find identical text, including spacing and punctuation".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: None,  // Exact match is a single score (no need for aggregation)
+            similarity_method: Some("Exact".to_string()),
+            similarity_threshold: Some(0.95),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
-            split_strategy: Some(String::from("Words")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Words".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(10),
-            similarity_threshold: Some(0.95),
-            similarity_method: Some(String::from("Exact")),
             use_parallel: Some(true),
             ignore_stopwords: Some(false),
             stemming: Some(false),
@@ -33,19 +35,22 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             config: Some(DynamicConfig::default()),
         },
     },
+
+    // 🟢 Near Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Near Match"),
-        description: String::from("Find text with minor formatting differences"),
+        name: "Near Match".to_string(),
+        description: "Find text with minor formatting differences".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: None,  // Levenshtein distance provides a single similarity score
+            similarity_method: Some("Levenshtein".to_string()),
+            similarity_threshold: Some(0.8),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some(String::from("Words")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Words".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(10),
-            similarity_threshold: Some(0.8),
-            similarity_method: Some(String::from("Levenshtein")),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
             stemming: Some(false),
@@ -61,19 +66,22 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             config: Some(DynamicConfig::default()),
         },
     },
+
+    // 🟢 Fuzzy Match (No Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Fuzzy Match"),
-        description: String::from("Find text with typos and small variations"),
+        name: "Fuzzy Match".to_string(),
+        description: "Find text with typos and small variations".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: None,  // Levenshtein distance still applies (single score)
+            similarity_method: Some("Levenshtein".to_string()),
+            similarity_threshold: Some(0.7),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some(String::from("Sentences")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Sentences".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(5),
-            similarity_threshold: Some(0.7),
-            similarity_method: Some(String::from("Levenshtein")),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
             stemming: Some(true),
@@ -89,19 +97,22 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
             config: Some(DynamicConfig::default()),
         },
     },
+
+    // 🔵 Similar Ideas (Uses Semantic Similarity, Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Similar Ideas"),
-        description: String::from("Find text expressing similar concepts"),
+        name: "Similar Ideas".to_string(),
+        description: "Find text expressing similar concepts".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: Some(SimilarityAggregation::Mean),  // Averaging multiple embeddings' similarity scores
+            similarity_method: Some("Semantic".to_string()),
+            similarity_threshold: Some(0.6),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some(String::from("Paragraphs")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Paragraphs".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(20),
-            similarity_threshold: Some(0.6),
-            similarity_method: Some(String::from("Semantic")),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
             stemming: Some(true),
@@ -114,33 +125,25 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
                 context: 0.4_f64,
             }),
             adaptive_thresholding: Some(true),
-            config: Some(DynamicConfig {
-                base: Default::default(),
-                user_stop_words: {
-                    let mut map = HashMap::new();
-                    map.insert("en".to_string(), ["very", "much", "quite", "rather"].iter().map(|&s| s.to_string()).collect());
-                    map.insert("es".to_string(), ["muy", "bastante", "más", "bien"].iter().map(|&s| s.to_string()).collect());
-                    map.insert("fr".to_string(), ["très", "beaucoup", "assez", "plutôt"].iter().map(|&s| s.to_string()).collect());
-                    map
-                },
-                user_sentence_delimiters: [';', ':'].iter().copied().collect(),
-                user_paragraph_delimiters: Some("\n\n---\n\n".to_string()),
-            }),
+            config: Some(DynamicConfig::default()),
         },
     },
+
+    // 🟢 Strict Large Blocks (No Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Strict Large Blocks"),
-        description: String::from("Looks for large duplicated character sequences (useful for code or logs)"),
+        name: "Strict Large Blocks".to_string(),
+        description: "Looks for large duplicated character sequences (useful for code or logs)".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: None,  // Exact match means no aggregation needed
+            similarity_method: Some("Exact".to_string()),
+            similarity_threshold: Some(0.9),
             case_sensitive: Some(true),
             ignore_whitespace: Some(false),
             ignore_punctuation: Some(false),
             normalize_unicode: Some(false),
-            split_strategy: Some(String::from("Characters")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Characters".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(50),
-            similarity_threshold: Some(0.9),
-            similarity_method: Some(String::from("Exact")),
             use_parallel: Some(true),
             ignore_stopwords: Some(false),
             stemming: Some(false),
@@ -153,27 +156,25 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
                 context: 0.1_f64,
             }),
             adaptive_thresholding: Some(false),
-            config: Some(DynamicConfig {
-                base: Default::default(),
-                user_stop_words: Default::default(),
-                user_sentence_delimiters: Default::default(),
-                user_paragraph_delimiters: Some("\n\n</code>\n\n".to_string()),
-            }),
+            config: Some(DynamicConfig::default()),
         },
     },
+
+    // 🔵 Loose Paragraph Matching (Uses Semantic Similarity, Aggregation Needed)
     DedupStrategyPreset {
-        name: String::from("Loose Paragraph Matching"),
-        description: String::from("Groups paragraphs that share a high-level similarity or partial overlap"),
+        name: "Loose Paragraph Matching".to_string(),
+        description: "Groups paragraphs that share a high-level similarity or partial overlap".to_string(),
         settings: DedupStrategySettings {
+            similarity_aggregation: Some(SimilarityAggregation::Max),  // Uses the most similar part of text
+            similarity_method: Some("Semantic".to_string()),
+            similarity_threshold: Some(0.65),
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
             ignore_punctuation: Some(true),
             normalize_unicode: Some(true),
-            split_strategy: Some(String::from("Paragraphs")),
-            comparison_scope: Some(String::from("Global")),
+            split_strategy: Some("Paragraphs".to_string()),
+            comparison_scope: Some("Global".to_string()),
             min_length: Some(20),
-            similarity_threshold: Some(0.65),
-            similarity_method: Some(String::from("Semantic")),
             use_parallel: Some(true),
             ignore_stopwords: Some(true),
             stemming: Some(true),
@@ -186,12 +187,7 @@ pub const DEDUP_PRESETS: &[DedupStrategyPreset] = &[
                 context: 0.4_f64,
             }),
             adaptive_thresholding: Some(true),
-            config: Some(DynamicConfig {
-                base: Default::default(),
-                user_stop_words: ["example", "note", "warning", "important"].iter().map(|&s| s.to_string()).collect(),
-                user_sentence_delimiters: [':', ';', '|'].iter().copied().collect(),
-                user_paragraph_delimiters: Some("\n\n---\n\n".to_string()),
-            }),
+            config: Some(DynamicConfig::default()),
         },
     },
 ];
