@@ -50,10 +50,7 @@ export function useDeduplication() {
 
   const loadSavedStrategy = async () => {
     try {
-      const savedStrategy = await invoke<string>('get_strategy')
-      if (savedStrategy) {
-        strategy.value = JSON.parse(savedStrategy)
-      }
+      strategy.value = await invoke<DedupStrategy>('get_strategy');
     } catch (error) {
       console.error('Failed to load saved strategy:', error)
     }
@@ -78,7 +75,9 @@ export function useDeduplication() {
       if (strategy.value.similarity_method === 'Semantic') {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-      results.value =  await invoke<DuplicateResult>('deduplicate_texts')
+      const res = await invoke<DuplicateResult>('deduplicate_texts');
+      console.log(res);
+      results.value = res;
   
     } catch (error) {
       console.error('Failed to find duplicates:', error)
