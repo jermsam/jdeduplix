@@ -19,8 +19,10 @@ export enum FuzzyAlgorithm {
 }
 
 // Because "Exact" is just a string in JSON, you need to account for that:
-export type SimilarityMethod =
-  | "Exact"
-  | "Semantic"
-  | "Levenshtein"
-  | { Fuzzy: FuzzyAlgorithm };
+export enum SimilarityMethod  {
+  Exact = "Exact",
+  Semantic = "Semantic",
+  Levenshtein = "Levenshtein",
+  Fuzzy = "Fuzzy"
+}
+  
