@@ -173,52 +173,77 @@ impl TextClassifier {
 
     /// Find duplicate texts using the configured strategy
     pub fn find_duplicates(&mut self) -> Vec<Vec<usize>> {
-        let use_parallel = self.strategy.use_parallel.unwrap_or(false);
-        let threshold = self.strategy.similarity_threshold.unwrap_or(0.8);
+        if self.texts.is_empty() {
+            return vec![];
+        }
 
+        let threshold = self.strategy.similarity_threshold.unwrap_or(0.8); // Default to 0.8 if no threshold is specified
+        let use_parallel = self.strategy.use_parallel.unwrap_or_default();
+
+        // First, prepare all the texts in a sequential manner
+        let prepared_texts: Vec<(usize, String, String)> = self.texts.iter()
+            .enumerate()
+            .map(|(idx, text)| {
+                let normalized = self.normalize_text(text);
+                (idx, text.to_string(), normalized)
+            })
+            .collect();
+
+        // Map phase: Extract features from each text
+        let features: Vec<(usize, HashSet<String>)> = if use_parallel {
+            prepared_texts.par_iter()
+                .map(|(idx, _, normalized)| {
+                    let words: HashSet<String> = self.split_text(normalized)
+                        .into_iter()
+                        .collect();
+                    (*idx, words)
+                })
+                .collect()
+        } else {
+            prepared_texts.iter()
+                .map(|(idx, _, normalized)| {
+                    let words: HashSet<String> = self.split_text(normalized)
+                        .into_iter()
+                        .collect();
+                    (*idx, words)
+                })
+                .collect()
+        };
+
+        // Reduce phase: Group similar texts
         let mut groups: Vec<Vec<usize>> = Vec::new();
         let mut processed: HashSet<usize> = HashSet::new();
 
-        let text_range: Vec<usize> = (0..self.texts.len()).collect();
-
-        for i in text_range {
-            if processed.contains(&i) {
+        for (i, words1) in features.iter() {
+            if processed.contains(i) {
                 continue;
             }
 
-            let text1 = &self.texts[i];
-            let mut group = vec![i];
+            let mut group = vec![*i];
+            processed.insert(*i);
 
-            // Use parallel iterator if enabled
-            let similar_indices: Vec<usize> = if use_parallel {
-                let text1 = text1.to_string();
-                let texts = self.texts.clone();
-                ((i + 1)..self.texts.len())
-                    .into_par_iter()
-                    .filter(|&j| !processed.contains(&j))
-                    .map(
-                        |j| (j, self.calculate_similarity(&text1, &texts[j]))
-                    )
-                    .filter(|&(_, similarity)| similarity >= threshold)
-                    .map(|(j, _)| j)
-                    .collect()
-            } else {
-                let mut similar = Vec::new();
-                for j in (i + 1)..self.texts.len() {
-                    if !processed.contains(&j) {
-                        let similarity = self.calculate_similarity(text1, &self.texts[j]);
-                        if similarity >= threshold {
-                            similar.push(j);
-                        }
-                    }
+            // Find similar texts
+            for (j, words2) in features.iter().skip(*i + 1) {
+                if processed.contains(j) {
+                    continue;
                 }
-                similar
-            };
 
-            group.extend(similar_indices);
-            
+                // Calculate Jaccard similarity
+                let intersection = words1.intersection(words2).count();
+                let union = words1.union(words2).count();
+                let similarity = if union > 0 {
+                    intersection as f64 / union as f64
+                } else {
+                    0.0
+                };
+
+                if similarity >= threshold {
+                    group.push(*j);
+                    processed.insert(*j);
+                }
+            }
+
             if group.len() > 1 {
-                processed.extend(group.iter());
                 groups.push(group);
             }
         }

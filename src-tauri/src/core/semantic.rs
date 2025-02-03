@@ -1,7 +1,7 @@
 //! Semantic analysis module using Burn, Tokenizers, and NLP utilities.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::f64::consts::E;
 
 use tokenizers::models::wordpiece::WordPiece;
@@ -42,7 +42,7 @@ static STOPWORDS: OnceLock<HashMap<Language, HashSet<String>>> = OnceLock::new()
 /// A text encoder using a transformer model.
 #[derive(Debug)]
 pub struct TextEncoder {
-    encoder: TransformerEncoder<DefaultBackend>,
+    encoder: Arc<Mutex<TransformerEncoder<DefaultBackend>>>,
     tokenizer: Arc<Tokenizer>,
     device: DefaultDevice,
 }
@@ -59,7 +59,7 @@ impl TextEncoder {
             12,              // number of layers
             4 * EMBEDDING_DIM, // feedforward dimension
         );
-        let encoder = config.init(&device);
+        let encoder = Arc::new(Mutex::new(config.init(&device)));
 
         let tokenizer = TOKENIZER.get_or_init(|| {
             let wordpiece = WordPiece::builder()
@@ -91,10 +91,13 @@ impl TextEncoder {
     
         // Collect into a Vec<i64> directly.
         let input_ids: Vec<i64> = encoding.get_ids()
-        .iter()
-        .map(|&id| id as i64)
-        .collect();
+            .iter()
+            .map(|&id| id as i64)
+            .collect();
     
+        // Get a lock on the encoder
+        let encoder = self.encoder.lock().expect("Failed to lock encoder");
+        
         // Pass the Vec directly.
         Tensor::<DefaultBackend, 2>::from_data(input_ids.as_slice(), &Default::default())
             .reshape([1, input_ids.len()])
@@ -107,6 +110,9 @@ impl TextEncoder {
         encoding2: &Tensor<DefaultBackend, 2>,
         _aggregation: Option<SimilarityAggregation>,
     ) -> f64 {
+        // Get a lock on the encoder
+        let _encoder = self.encoder.lock().expect("Failed to lock encoder");
+        
         // Clone tensors before operations
         let e1 = encoding1.clone();
         let e2 = encoding2.clone();
