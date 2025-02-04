@@ -37,7 +37,7 @@ export function useDeduplication() {
           }
         })
         // If we're using semantic similarity, wait a bit for processing
-        if (newStrategy.similarity_method === 'Semantic') {
+        if (newStrategy.similarity_method.type === 'Semantic') {
           await new Promise(resolve => setTimeout(resolve, 100))
         }
       } catch (error) {
@@ -72,7 +72,7 @@ export function useDeduplication() {
       texts.value.push(text)
       
       // If we're using semantic similarity, wait a bit for processing
-      if (strategy.value.similarity_method === 'Semantic') {
+      if (strategy.value.similarity_method.type === 'Semantic') {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       const res = await invoke<DuplicateResult>('deduplicate_texts');

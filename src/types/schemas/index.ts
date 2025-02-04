@@ -1,10 +1,23 @@
 import { z } from 'zod';
-import {ComparisonScope, SimilarityMethod, SplitStrategy} from '../enums';
+import {ComparisonScope,  SplitStrategy, FuzzyAlgorithm} from '../enums';
 
 // 1) Zod schemas for enums
 export const SplitStrategySchema = z.nativeEnum(SplitStrategy);
 export const ComparisonScopeSchema = z.nativeEnum(ComparisonScope);
-export const SimilarityMethodSchema = z.nativeEnum(SimilarityMethod);
+export const FuzzyAlgorithmSchema = z.nativeEnum(FuzzyAlgorithm);
+
+export const SimilarityMethodSchema = z.object({
+  type: z.enum(["Exact", "Semantic", "Levenshtein", "Fuzzy"]),
+  algorithm: FuzzyAlgorithmSchema.optional()
+}).refine((data) => {
+  // Ensure algorithm is present when type is Fuzzy
+  if (data.type === "Fuzzy") {
+    return data.algorithm !== undefined;
+  }
+  return true;
+}, {
+  message: "FuzzyAlgorithm must be specified when type is Fuzzy"
+});
 
 /**
  * Configuration for similarity weights used in deduplication.

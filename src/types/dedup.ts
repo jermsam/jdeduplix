@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {DedupStrategySchema, DuplicateGroupSchema, DuplicateResultSchema, DuplicateStatsSchema, SimilarityWeightsSchema, DedupPresetsSchema} from './schemas';
-import {SplitStrategy, ComparisonScope, SimilarityMethod} from './enums'
+import {SplitStrategy, ComparisonScope, FuzzyAlgorithm} from './enums'
 
 /**
  * Types for deduplication
@@ -13,7 +13,6 @@ export type DuplicateResult = z.infer<typeof DuplicateResultSchema>;
 export type SimilarityWeights = z.infer<typeof SimilarityWeightsSchema>;
 export type DedupPreset = z.infer<typeof DedupPresetsSchema>;
 
-export {SplitStrategy, ComparisonScope, SimilarityMethod};
 
 
 export const DEDUP_PRESETS: DedupPreset[] = [
@@ -29,19 +28,18 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 10,
       similarity_threshold: 0.95,
-      similarity_method: SimilarityMethod.Exact,
+      similarity_method: { type: "Exact" },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
       ngram_size: 3,
       language_detection: false,
       encoding_normalization: true,
- // Balanced configuration that works well for general purpose deduplication
- similarity_weighting: {
-  frequency: 0.4,  // Moderate emphasis on word frequency
-  position: 0.4,   // Moderate emphasis on word order
-  context: 0.2     // Light emphasis on semantic meaning
-},
+      similarity_weighting: {
+        frequency: 0.4,
+        position: 0.4,
+        context: 0.2
+      },
       adaptive_thresholding: false
     },
   },
@@ -57,7 +55,7 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 10,
       similarity_threshold: 0.8,
-      similarity_method: SimilarityMethod.Exact,
+      similarity_method: { type: "Levenshtein" },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
@@ -84,7 +82,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 5,
       similarity_threshold: 0.7,
-      similarity_method: SimilarityMethod.Fuzzy,
+      similarity_method: { 
+        type: "Fuzzy", 
+        algorithm: FuzzyAlgorithm.DamerauLevenshtein 
+      },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
@@ -111,7 +112,7 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 10,
       similarity_threshold: 0.8,
-      similarity_method: SimilarityMethod.Semantic,
+      similarity_method: { type: "Semantic" },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
@@ -138,7 +139,7 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 50,
       similarity_threshold: 0.9,
-      similarity_method: SimilarityMethod.Exact,
+      similarity_method: { type: "Exact" },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
@@ -165,7 +166,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       comparison_scope: ComparisonScope.Global,
       min_length: 20,
       similarity_threshold: 0.65,
-      similarity_method: SimilarityMethod.Fuzzy,
+      similarity_method: { 
+        type: "Fuzzy", 
+        algorithm: FuzzyAlgorithm.JaroWinkler 
+      },
       use_parallel: true,
       ignore_stopwords: false,
       stemming: false,
@@ -182,8 +186,12 @@ export const DEDUP_PRESETS: DedupPreset[] = [
   },
 ];
 
-const get_default_strategy_by_preset = (name): DedupStrategy => {
-  return DEDUP_PRESETS.find((preset) => preset.name === name).settings
+const get_default_strategy_by_preset = (name: string): DedupStrategy => {
+  const preset = DEDUP_PRESETS.find((preset) => preset.name === name);
+  if (!preset || !preset.settings) {
+    throw new Error(`No preset found with name: ${name}`);
+  }
+  return preset.settings;
 }
 
-export const DEFAULT_STRATEGY: DedupStrategy = get_default_strategy_by_preset('Exact Match')
+export const DEFAULT_STRATEGY: DedupStrategy = get_default_strategy_by_preset('Exact Match');

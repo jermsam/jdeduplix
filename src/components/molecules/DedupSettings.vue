@@ -6,7 +6,7 @@
   import Select from '../atoms/Select.vue';
   import {DedupStrategy, DedupPreset, DEDUP_PRESETS} from '../../types/dedup.ts';
   import {ref, watch, computed} from 'vue';
-  import { SplitStrategy, ComparisonScope, SimilarityMethod } from '../../types/enums';
+  import { SplitStrategy, ComparisonScope,  } from '../../types/enums';
 
   const props = defineProps<{
     strategy: DedupStrategy
@@ -43,7 +43,7 @@
 
   const splitStrategyOptions = Object.values(SplitStrategy);
   const comparisonScopeOptions = Object.values(ComparisonScope);
-  const similarityMethodOptions = Object.values(SimilarityMethod);
+  const similarityMethodOptions = ["Exact", "Semantic", "Levenshtein", "Fuzzy"];
 </script>
 
 <template>
@@ -134,7 +134,7 @@
 
           <Select
             label="Similarity Method"
-            :model-value="currentSettings.similarity_method"
+            :model-value="currentSettings.similarity_method.type"
             @update:model-value="updateStrategy('similarity_method', $event)"
             :options="similarityMethodOptions"
           />
