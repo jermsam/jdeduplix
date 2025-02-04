@@ -135,7 +135,7 @@
           <Select
             label="Similarity Method"
             :model-value="currentSettings.similarity_method.type"
-            @update:model-value="updateStrategy('similarity_method', $event)"
+            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, type: $event })"
             :options="similarityMethodOptions"
           />
 
