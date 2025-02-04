@@ -64,7 +64,7 @@ pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings
 #[tauri::command]
 pub async fn deduplicate_texts(app_handle: AppHandle) -> Result<DedupResults, String> {
     let state = app_handle.state::<Mutex<DedupManager>>();
-    let manager = state.lock().await;
+    let mut manager = state.lock().await;
     let raw_results = manager.deduplicate_texts().map_err(|e| e.to_string())?;
     
     // Convert the raw results into our frontend-friendly format

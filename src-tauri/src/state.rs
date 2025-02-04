@@ -7,6 +7,7 @@ use std::str::FromStr;
 use strsim;
 use jaro_winkler::jaro_winkler;
 use rphonetic::{Encoder, Soundex};
+use crate::core::classifier::TextClassifier;
 
 // ---------------------------------------------------------------------
 // Core Types
@@ -131,8 +132,6 @@ pub struct DedupStrategySettings {
     pub config: Option<DynamicConfig>,
 }
 
-
-
 impl Default for DedupStrategySettings {
     fn default() -> Self {
         Self {
@@ -187,31 +186,36 @@ pub struct DedupStats {
 }
 
 pub struct DedupManager {
-    strategy: DedupStrategySettings,
     texts: Vec<String>,
+    strategy: DedupStrategySettings,
+    classifier: TextClassifier,
 }
 
 impl DedupManager {
     pub fn new(strategy: DedupStrategySettings, _similarity_method: SimilarityMethod) -> Self {
         Self {
-            strategy,
+            strategy: strategy.clone(),
             texts: Vec::new(),
+            classifier: TextClassifier::new(strategy),
         }
     }
 
     pub fn clear(&mut self) -> Result<()> {
         self.texts.clear();
+        self.classifier.clear();
         Ok(())
     }
 
     pub fn add_text(&mut self, text: String) -> usize {
-        let index = self.texts.len();
+        let idx = self.classifier.add_text(text.clone());
         self.texts.push(text);
-        index
+        idx
     }
 
     pub fn update_strategy(&mut self, strategy_json: &str) -> Result<()> {
-        self.strategy = serde_json::from_str(strategy_json)?;
+        let strategy: DedupStrategySettings = serde_json::from_str(strategy_json)?;
+        self.strategy = strategy.clone();
+        self.classifier.update_strategy(strategy);
         Ok(())
     }
 
@@ -220,12 +224,10 @@ impl DedupManager {
     }
 
     pub fn get_text(&self, id: usize) -> Option<String> {
-        self.texts.get(id).cloned()
+        self.classifier.get_text(id)
     }
 
-    pub fn deduplicate_texts(&self) -> Result<DedupResults, String> {
-        use rayon::prelude::*;
-        
+    pub fn deduplicate_texts(&mut self) -> Result<DedupResults, String> {
         // Early return if no texts
         if self.texts.is_empty() {
             return Ok(DedupResults {
@@ -238,226 +240,41 @@ impl DedupManager {
             });
         }
 
-        // Step 1: Normalize all texts based on settings and detect languages
-        let normalized_texts: Vec<(String, String, Option<whatlang::Info>)> = self.texts.par_iter()
-            .map(|text| {
-                let lang_info = if self.strategy.language_detection.unwrap_or(false) {
-                    whatlang::detect(text)
-                } else {
-                    None
-                };
-                
-                let normalized = if self.strategy.ignore_stopwords.unwrap_or(false) {
-                    let stop_words = self.strategy.config.as_ref()
-                        .map(|config| config.get_stop_words_for_text(text))
-                        .unwrap_or_default();
-                    
-                    let mut processed = text.to_string();
-                    for word in stop_words {
-                        processed = processed.replace(&word, " ");
-                    }
-                    processed
-                } else {
-                    text.to_string()
-                };
-
-                let normalized = if !self.strategy.case_sensitive.unwrap_or(true) {
-                    normalized.to_lowercase()
-                } else {
-                    normalized
-                };
-
-                let normalized = if self.strategy.ignore_whitespace.unwrap_or(false) {
-                    normalized.split_whitespace().collect::<Vec<_>>().join(" ")
-                } else {
-                    normalized
-                };
-
-                let normalized = if self.strategy.ignore_punctuation.unwrap_or(false) {
-                    normalized.chars()
-                        .filter(|c| !c.is_ascii_punctuation())
-                        .collect::<String>()
-                } else {
-                    normalized
-                };
-
-                (text.to_string(), normalized, lang_info)
-            })
-            .collect();
-
-        // Step 2: Create similarity matrix using parallel processing
-        let n = normalized_texts.len();
-        let similarity_matrix: Vec<Vec<f64>> = (0..n)
-            .into_par_iter()
-            .map(|i| {
-                let (_, text1, lang1) = &normalized_texts[i];
-                (0..n)
-                    .map(|j| {
-                        if i == j {
-                            return 1.0;
-                        }
-                        let (_, text2, lang2) = &normalized_texts[j];
-                        
-                        // Adjust threshold based on text length if adaptive thresholding is enabled
-                        let base_threshold = self.strategy.similarity_threshold.unwrap_or(0.8);
-                        let threshold = if self.strategy.adaptive_thresholding.unwrap_or(false) {
-                            let avg_len = (text1.len() + text2.len()) as f64 / 2.0;
-                            // Increase threshold for shorter texts
-                            if avg_len < 50.0 {
-                                (base_threshold + 0.1).min(1.0)
-                            } else if avg_len > 200.0 {
-                                (base_threshold - 0.1).max(0.0)
-                            } else {
-                                base_threshold
-                            }
-                        } else {
-                            base_threshold
-                        };
-
-                        // Calculate similarity based on method
-                        match self.strategy.similarity_method {
-                            SimilarityMethod::Exact => {
-                                if text1 == text2 { 1.0 } else { 0.0 }
-                            },
-                            SimilarityMethod::Levenshtein => {
-                                let distance = strsim::levenshtein(text1, text2);
-                                let max_len = text1.len().max(text2.len());
-                                1.0 - (distance as f64 / max_len as f64)
-                            },
-                           SimilarityMethod::Semantic => {
-                                // Check if languages match for semantic comparison
-                                if let (Some(l1), Some(l2)) = (lang1, lang2) {
-                                    if l1.lang() != l2.lang() {
-                                        return 0.0; // Different languages
-                                    }
-                                }
-                                
-                                // TODO: Implement proper semantic similarity
-                                // For now, use a combination of n-gram and Levenshtein
-                                let ngram_size = self.strategy.ngram_size.unwrap_or(3) as usize;
-                                let ngrams1 = text1.chars()
-                                    .collect::<Vec<_>>()
-                                    .windows(ngram_size)
-                                    .map(|w| w.iter().collect::<String>())
-                                    .collect::<HashSet<_>>();
-                                let ngrams2 = text2.chars()
-                                    .collect::<Vec<_>>()
-                                    .windows(ngram_size)
-                                    .map(|w| w.iter().collect::<String>())
-                                    .collect::<HashSet<_>>();
-                                
-                                let intersection = ngrams1.intersection(&ngrams2).count() as f64;
-                                let union = ngrams1.union(&ngrams2).count() as f64;
-                                
-                                if union == 0.0 {
-                                    0.0
-                                } else {
-                                    intersection / union
-                                }
-                            },
-                            SimilarityMethod::Fuzzy(algorithm) => {
-                                // Fuzzy matching
-                                match algorithm {
-                                    FuzzyAlgorithm::DamerauLevenshtein => {
-                                        let distance = strsim::damerau_levenshtein(text1, text2);
-                                        let max_len = text1.len().max(text2.len());
-                                        1.0 - (distance as f64 / max_len as f64)
-                                    },
-                                    FuzzyAlgorithm::JaroWinkler => {
-                                        strsim::jaro_winkler(text1, text2)
-                                    },
-                                    FuzzyAlgorithm::Soundex => {
-                                        let soundex = Soundex::default();
-                                        // Handle potential None results from encode
-                                        match (soundex.encode(text1), soundex.encode(text2)) {
-                                            (encoded1, encoded2) => {
-                                                strsim::jaro_winkler(&encoded1, &encoded2)
-                                            },
-                                            _ => 0.0 // Return 0.0 similarity if encoding fails
-                                        }
-                                    },
-                                    FuzzyAlgorithm::NGram => {
-                                        let ngram_size = self.strategy.ngram_size.unwrap_or(3) as usize;
-                                        let ngrams1 = text1.chars()
-                                            .collect::<Vec<_>>()
-                                            .windows(ngram_size)
-                                            .map(|w| w.iter().collect::<String>())
-                                            .collect::<HashSet<_>>();
-                                        let ngrams2 = text2.chars()
-                                            .collect::<Vec<_>>()
-                                            .windows(ngram_size)
-                                            .map(|w| w.iter().collect::<String>())
-                                            .collect::<HashSet<_>>();
-                                        
-                                        let intersection = ngrams1.intersection(&ngrams2).count() as f64;
-                                        let union = ngrams1.union(&ngrams2).count() as f64;
-                                        
-                                        if union == 0.0 {
-                                            0.0
-                                        } else {
-                                            intersection / union
-                                        }
-                                    },
-                                }
-                            },
-                            _ => 0.0,
-                        }
-                    })
-                    .collect()
-            })
-            .collect();
-
-        // Step 3: Group similar texts using the similarity matrix
-        let mut groups = Vec::new();
-        let mut processed = HashSet::new();
-
-        for i in 0..n {
-            if processed.contains(&i) {
-                continue;
-            }
-
-            let mut group = vec![i];
-            for j in (i + 1)..n {
-                if processed.contains(&j) {
-                    continue;
-                }
-
-                let similarity = similarity_matrix[i][j];
-                let threshold = self.strategy.similarity_threshold.unwrap_or(0.8);
-                
-                if similarity >= threshold {
-                    group.push(j);
-                    processed.insert(j);
-                }
-            }
-
-            if group.len() > 1 {
-                let original = normalized_texts[group[0]].0.clone();
-                let duplicates = group[1..].iter()
-                    .map(|&idx| normalized_texts[idx].0.clone())
+        // Use TextClassifier to find duplicates
+        let duplicate_indices = self.classifier.find_duplicates();
+        
+        // Convert indices to DuplicateGroups
+        let duplicate_groups: Vec<DuplicateGroup> = duplicate_indices
+            .into_iter()
+            .map(|indices| {
+                let texts: Vec<String> = indices
+                    .iter()
+                    .filter_map(|&idx| self.texts.get(idx).cloned())
                     .collect();
                 
-                // Use the maximum similarity score for the group
-                let similarity = group[1..].iter()
-                    .map(|&idx| similarity_matrix[group[0]][idx])
-                    .fold(0.0, f64::max);
+                DuplicateGroup {
+                    original: texts[0].clone(),
+                    duplicates: texts[1..].to_vec(),
+                    similarity: 0.0, // TODO: Calculate similarity
+                }
+            })
+            .collect();
 
-                groups.push(DuplicateGroup {
-                    original,
-                    duplicates,
-                    similarity,
-                });
+        // Calculate stats
+        let total_items = self.texts.len();
+        let duplicate_groups_count = duplicate_groups.len();
+        let unique_items = total_items - duplicate_groups
+            .iter()
+            .map(|group| group.duplicates.len())
+            .sum::<usize>();
+
+        Ok(DedupResults {
+            duplicate_groups,
+            stats: DedupStats {
+                total_items,
+                unique_items,
+                duplicate_groups: duplicate_groups_count,
             }
-            processed.insert(i);
-        }
-
-        // Step 4: Calculate statistics
-        let stats = DedupStats {
-            total_items: self.texts.len(),
-            unique_items: self.texts.len() - processed.len() + groups.len(),
-            duplicate_groups: groups.len(),
-        };
-
-        Ok(DedupResults { duplicate_groups: groups, stats })
+        })
     }
 }
