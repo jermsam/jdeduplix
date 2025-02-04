@@ -5,8 +5,8 @@
   import Switch from '../atoms/Switch.vue';
   import Select from '../atoms/Select.vue';
   import {DedupStrategy, DedupPreset, DEDUP_PRESETS} from '../../types/dedup.ts';
+  import {SplitStrategy, ComparisonScope, FuzzyAlgorithm} from '../../types/enums';
   import {ref, watch, computed} from 'vue';
-  import { SplitStrategy, ComparisonScope,  } from '../../types/enums';
 
   const props = defineProps<{
     strategy: DedupStrategy
@@ -44,6 +44,7 @@
   const splitStrategyOptions = Object.values(SplitStrategy);
   const comparisonScopeOptions = Object.values(ComparisonScope);
   const similarityMethodOptions = ["Exact", "Semantic", "Levenshtein", "Fuzzy"];
+  const fuzzyAlgorithmOptions = Object.values(FuzzyAlgorithm).map(val => val as string);
 </script>
 
 <template>
@@ -137,6 +138,15 @@
             :model-value="currentSettings.similarity_method.type"
             @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, type: $event })"
             :options="similarityMethodOptions"
+          />
+
+          <!-- Fuzzy Algorithm Selection -->
+          <Select
+            v-if="currentSettings.similarity_method.type === 'Fuzzy'"
+            label="Fuzzy Algorithm"
+            :model-value="currentSettings.similarity_method.algorithm || FuzzyAlgorithm.DamerauLevenshtein"
+            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, algorithm: $event })"
+            :options="fuzzyAlgorithmOptions"
           />
 
           <Input
