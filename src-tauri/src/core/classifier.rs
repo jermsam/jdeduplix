@@ -310,7 +310,7 @@ impl TextClassifier {
             return vec![];
         }
 
-        let threshold = self.strategy.similarity_threshold.unwrap_or(0.8);
+        let threshold = self.strategy.similarity_threshold;
         let use_parallel = self.strategy.use_parallel.unwrap_or_default();
 
         // First, prepare all the texts in a sequential manner

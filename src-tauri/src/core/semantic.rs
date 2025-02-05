@@ -18,7 +18,7 @@ use stop_words::{get, LANGUAGE as StopLanguage};
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
 
-use crate::state::{DedupStrategySettings, SimilarityAggregation, SimilarityWeighting, WeightingStrategy};
+use crate::state::{DedupStrategySettings, WeightingStrategy};
 
 // Type aliases for convenience.
 type DefaultBackend = NdArray;
@@ -108,7 +108,6 @@ impl TextEncoder {
         &self,
         encoding1: &Tensor<DefaultBackend, 2>,
         encoding2: &Tensor<DefaultBackend, 2>,
-        aggregation: SimilarityAggregation,
     ) -> f64 {
         // Get a lock on the encoder
         let _encoder = self.encoder.lock().expect("Failed to lock encoder");
@@ -134,62 +133,8 @@ impl TextEncoder {
         }
     
         // Compute similarity
-
-                // Apply aggregation method if multiple values exist
-                let final_similarity = match aggregation {
-                    SimilarityAggregation::First => {
-                    let similarity = dot_product.into_scalar() / denominator_scalar;
-                    
-                    println!("Calculated similarity: {}", similarity);
-
-                    similarity as f64
-                    },
-                    SimilarityAggregation::Mean => {
-                        let similarity_tensor = dot_product / denominator_scalar;
-                        let similarities_result = similarity_tensor.into_data().to_vec();
-                        
-                        let similarities = match similarities_result {
-                            Ok(vec) => vec,
-                            Err(_) => {
-                                println!("Error extracting similarity values.");
-                                return 0.0;
-                            }
-                        };
-                        
-                        similarities.iter().sum::<f64>() / similarities.len() as f64
-                    }
-                    SimilarityAggregation::Max => {
-                        let similarity_tensor = dot_product / denominator_scalar;
-                        let similarities_result = similarity_tensor.into_data().to_vec();
-                        
-                        let similarities = match similarities_result {
-                            Ok(vec) => vec,
-                            Err(_) => {
-                                println!("Error extracting similarity values.");
-                                return 0.0;
-                            }
-                        };
-                        similarities.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
-                    },
-                    SimilarityAggregation::Min => {
-                        let similarity_tensor = dot_product / denominator_scalar;
-                        let similarities_result = similarity_tensor.into_data().to_vec();
-                        
-                        let similarities = match similarities_result {
-                            Ok(vec) => vec,
-                            Err(_) => {
-                                println!("Error extracting similarity values.");
-                                return 0.0;
-                            }
-                        };
-                        
-                        similarities.iter().cloned().fold(f64::INFINITY, f64::min)
-                    },
-                };
-        
-                println!("Calculated similarity: {}", final_similarity);
-        
-                final_similarity
+        let similarity = dot_product.into_scalar() / denominator_scalar;
+        similarity as f64
     }
 }
 
@@ -353,7 +298,6 @@ impl SemanticAnalyzer {
         let doc1 = self.encode(text1, settings);
         let doc2 = self.encode(text2, settings);
 
-        // Apply a language penalty if language detection is enabled.
         let language_penalty = if settings.language_detection.unwrap_or(false) {
             match (doc1.language, doc2.language) {
                 (Some(l1), Some(l2)) if l1 != l2 => 0.8, // 20% penalty for different languages.
@@ -363,19 +307,15 @@ impl SemanticAnalyzer {
             1.0
         };
 
-        let mut similarity = self
+        let similarity = self
             .encoder
-            .calculate_similarity(&doc1.vector, &doc2.vector, settings.similarity_aggregation);
+            .calculate_similarity(&doc1.vector, &doc2.vector);
 
-        // Enforce a similarity threshold if specified.
-        if let Some(threshold) = settings.similarity_threshold {
-            similarity = if similarity >= threshold { similarity } else { 0.0 };
-        }
-
-        // Apply similarity weighting if specified.
-        // Apply similarity weighting if available
-        if let Some(weighting) = &settings.similarity_weighting {
-            similarity = apply_weighting(similarity, weighting);
+        // Apply threshold if specified
+        if let Some(threshold) = settings.threshold {
+            if similarity < threshold {
+                return 0.0;
+            }
         }
 
         similarity * language_penalty
@@ -389,37 +329,6 @@ impl Default for SemanticAnalyzer {
             language_cache: HashMap::new(),
         }
     }
-}
-
-/// **Applies similarity weighting based on the given strategy.**
-fn apply_weighting(similarity: f64, weighting: &SimilarityWeighting) -> f64 {
-    let adjusted_similarity = match weighting.strategy {
-        WeightingStrategy::Linear => similarity, // No transformation
-        WeightingStrategy::Quadratic => similarity * similarity,
-        WeightingStrategy::Exponential => E.powf(similarity) - 1.0,
-        WeightingStrategy::Logarithmic => {
-            if similarity > 0.0 {
-                similarity.ln() + 1.0
-            } else {
-                0.0
-            }
-        }
-        WeightingStrategy::WeightedMean => {
-            let weight_sum = weighting.frequency + weighting.position + weighting.context;
-
-            if weight_sum > 0.0 {
-                let weighted_similarity = (similarity * weighting.frequency
-                    + similarity * weighting.position
-                    + similarity * weighting.context)
-                    / weight_sum;
-                weighted_similarity
-            } else {
-                similarity // If all weights are zero, return unchanged similarity
-            }
-        }
-    };
-
-    adjusted_similarity
 }
 
 // ---------------------------------------------------------------------

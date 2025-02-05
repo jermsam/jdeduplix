@@ -95,8 +95,8 @@ export const DedupStrategySchema = z.object({
   ignore_stopwords: z.boolean(),
   stemming: z.boolean(),
   ngram_size: z.number(),
-  max_duplicate_count: z.number().optional(),
   language_detection: z.boolean(),
+  max_duplicate_count: z.number().optional(),
   encoding_normalization: z.boolean(),
   similarity_weighting: SimilarityWeightsSchema,
   adaptive_thresholding: z.boolean()

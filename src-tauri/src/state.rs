@@ -14,23 +14,23 @@ use crate::core::classifier::TextClassifier;
 // ---------------------------------------------------------------------
 
 /// Strategy for aggregating similarity values from the tensor
-#[derive(Debug, Clone,Copy, Serialize, Deserialize)]
-pub enum SimilarityAggregation {
-    /// Use only the first similarity value
-    First,
-    /// Take the average of all similarity values
-    Mean,
-    /// Take the maximum similarity value
-    Max,
-    /// Take the minimum similarity value
-    Min,
-}
-
-impl Default for SimilarityAggregation {
-    fn default() -> Self {
-        SimilarityAggregation::First
-    }
-}
+// #[derive(Debug, Clone,Copy, Serialize, Deserialize)]
+// pub enum SimilarityAggregation {
+//     /// Use only the first similarity value
+//     First,
+//     /// Take the average of all similarity values
+//     Mean,
+//     /// Take the maximum similarity value
+//     Max,
+//     /// Take the minimum similarity value
+//     Min,
+// }
+//
+// impl Default for SimilarityAggregation {
+//     fn default() -> Self {
+//         SimilarityAggregation::First
+//     }
+// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SimilarityMethod {
@@ -89,7 +89,7 @@ pub enum ComparisonScope {
     Global,
 }
 
-// /// Options for weighting the similarity.
+/// Options for weighting the similarity.
 /// Defines different strategies for adjusting similarity scores.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WeightingStrategy {
@@ -100,34 +100,48 @@ pub enum WeightingStrategy {
     WeightedMean,  // Custom weighted similarity (uses frequency, position, context)
 }
 
+// /// Defines different strategies for adjusting similarity scores.
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub enum WeightingStrategy {
+//     Linear,        // No transformation
+//     Quadratic,     // similarity^2 (punishes small differences)
+//     Exponential,   // exp(similarity) - 1
+//     Logarithmic,   // ln(similarity) + 1 (avoids negatives)
+//     WeightedMean,  // Custom weighted similarity (uses frequency, position, context)
+// }
+
 /// Custom similarity weighting based on text features.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SimilarityWeighting {
-    pub frequency: f64, // Importance of word frequency in similarity
-    pub position: f64,  // Importance of word position
-    pub context: f64,   // Importance of context-based similarity
-    pub strategy: WeightingStrategy, // The strategy used to scale similarity
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct SimilarityWeighting {
+//     pub frequency: f64, // Importance of word frequency in similarity
+//     pub position: f64,  // Importance of word position
+//     pub context: f64,   // Importance of context-based similarity
+//     pub strategy: WeightingStrategy, // The strategy used to scale similarity
+// }
+
+// TODO: In future versions, we will implement multiple similarity methods support
+// which will include:
+// 1. Composite similarity methods (Vec<SimilarityMethod>)
+// 2. Weighting strategies for different methods
+// 3. Aggregation strategies for combining scores
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DedupStrategySettings {
-    pub similarity_aggregation: SimilarityAggregation,
     pub case_sensitive: Option<bool>,
     pub ignore_whitespace: Option<bool>,
     pub ignore_punctuation: Option<bool>,
     pub normalize_unicode: Option<bool>,
-    pub split_strategy: SplitStrategy,
-    pub comparison_scope: ComparisonScope,
-    pub min_length: Option<usize>,
-    pub similarity_threshold: Option<f64>,
-    pub similarity_method: SimilarityMethod,
-    pub use_parallel: Option<bool>,
     pub ignore_stopwords: Option<bool>,
     pub stemming: Option<bool>,
-    pub ngram_size: Option<usize>,
     pub language_detection: Option<bool>,
+    pub ngram_size: Option<usize>,
+    pub min_length: Option<usize>,
+    pub threshold: Option<f64>,
+    pub split_strategy: SplitStrategy,
+    pub comparison_scope: ComparisonScope,
+    pub similarity_method: SimilarityMethod,
+    pub use_parallel: Option<bool>,
     pub encoding_normalization: Option<bool>,
-    pub similarity_weighting: Option<SimilarityWeighting>,
     pub adaptive_thresholding: Option<bool>,
     pub config: Option<DynamicConfig>,
 }
@@ -137,23 +151,21 @@ impl Default for DedupStrategySettings {
         Self {
             case_sensitive: Some(false),
             ignore_whitespace: Some(true),
-            ignore_punctuation: Some(false),
-            normalize_unicode: Some(false),
+            ignore_punctuation: Some(true),
+            normalize_unicode: Some(true),
+            ignore_stopwords: Some(true),
+            stemming: Some(true),
+            language_detection: Some(true),
+            ngram_size: None,
+            min_length: None,
+            threshold: Some(0.5),
             split_strategy: SplitStrategy::Words,
             comparison_scope: ComparisonScope::Global,
-            min_length: Some(10),
-            similarity_threshold: Some(0.8),
             similarity_method: SimilarityMethod::Exact,
             use_parallel: Some(true),
-            ignore_stopwords: Some(false),
-            stemming: Some(false),
-            ngram_size: Some(3),
-            language_detection: Some(false),
             encoding_normalization: Some(true),
-            similarity_weighting: None,
             adaptive_thresholding: Some(false),
             config: Some(DynamicConfig::default()),
-            similarity_aggregation: SimilarityAggregation::First,
         }
     }
 }
