@@ -1,21 +1,39 @@
 import {z} from 'zod';
-import {DedupStrategySchema, DuplicateGroupSchema, DuplicateResultSchema, DuplicateStatsSchema, SimilarityWeightsSchema, DedupPresetsSchema} from './schemas';
-import {SplitStrategy, ComparisonScope, FuzzyAlgorithm} from './enums'
+import {
+  DedupStrategySchema,
+   DuplicateGroupSchema, 
+   DuplicateResultSchema, 
+   DuplicateStatsSchema, 
+   DedupPresetsSchema,
+   SimilarityWeightsSchema,
+   SimilarityMethodSchema, 
+   SimilarityAggregationSchema,
+   SplitStrategySchema,
+   WeightingStrategySchema,
+   ComparisonScopeSchema,
+   FuzzyAlgorithmSchema
+  } from './schemas';
+import {SplitStrategy, ComparisonScope, FuzzyAlgorithm, WeightingStrategy, SimilarityAggregation} from './enums'
 
-/**
- * Types for deduplication
- */
-
-export type DedupStrategy = z.infer<typeof DedupStrategySchema>;
-export type DuplicateGroup = z.infer<typeof DuplicateGroupSchema>;
-export type DuplicateStat = z.infer<typeof DuplicateStatsSchema>;
-export type DuplicateResult = z.infer<typeof DuplicateResultSchema>;
-export type SimilarityWeights = z.infer<typeof SimilarityWeightsSchema>;
-export type DedupPreset = z.infer<typeof DedupPresetsSchema>;
 
 
+export type DuplicateGroupType = z.infer<typeof DuplicateGroupSchema>;
+export type DuplicateStatType = z.infer<typeof DuplicateStatsSchema>;
+export type DuplicateResultType = z.infer<typeof DuplicateResultSchema>;
+export type DedupPresetType = z.infer<typeof DedupPresetsSchema>;
+export type DedupStrategyType = z.infer<typeof DedupStrategySchema>;
+export type SimilarityMethodType = z.infer<typeof SimilarityMethodSchema>;
+export type SimilarityWeightsType = z.infer<typeof SimilarityWeightsSchema>;
+export type SimilarityAggregationType = z.infer<typeof SimilarityAggregationSchema>;
+export type WeightingStrategyType = z.infer<typeof WeightingStrategySchema>;
+export type ComparisonScopeType = z.infer<typeof ComparisonScopeSchema>;
+export type SplitStrategyType = z.infer<typeof SplitStrategySchema>;
+export type FuzzyAlgorithmType = z.infer<typeof FuzzyAlgorithmSchema>;
 
-export const DEDUP_PRESETS: DedupPreset[] = [
+
+
+
+export const DEDUP_PRESETS: DedupPresetType[] = [
   {
     name: 'Exact Match',
     description: 'Find identical text, including spacing and punctuation',
@@ -38,8 +56,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
@@ -65,8 +85,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
@@ -95,8 +117,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
@@ -122,8 +146,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
@@ -149,8 +175,10 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
@@ -179,14 +207,16 @@ export const DEDUP_PRESETS: DedupPreset[] = [
       similarity_weighting: {
         frequency: 0.4,
         position: 0.4,
-        context: 0.2
+        context: 0.2,
+        strategy: WeightingStrategy.Linear
       },
+      similarity_aggregation: SimilarityAggregation.Mean,
       adaptive_thresholding: false
     },
   },
 ];
 
-const get_default_strategy_by_preset = (name: string): DedupStrategy => {
+const get_default_strategy_by_preset = (name: string): DedupStrategyType => {
   const preset = DEDUP_PRESETS.find((preset) => preset.name === name);
   if (!preset || !preset.settings) {
     throw new Error(`No preset found with name: ${name}`);
@@ -194,4 +224,4 @@ const get_default_strategy_by_preset = (name: string): DedupStrategy => {
   return preset.settings;
 }
 
-export const DEFAULT_STRATEGY: DedupStrategy = get_default_strategy_by_preset('Exact Match');
+export const DEFAULT_STRATEGY: DedupStrategyType = get_default_strategy_by_preset('Exact Match');

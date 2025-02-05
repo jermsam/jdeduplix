@@ -1,9 +1,28 @@
+export enum SimilarityAggregation {
+  /// Use only the first similarity value
+  First = 'First',
+  /// Take the average of all similarity values
+  Mean = 'Mean',
+  /// Take the maximum similarity value
+  Max = 'Max',
+  /// Take the minimum similarity value
+  Min = 'Min',
+}
+
 export enum SplitStrategy {
   Characters = 'Characters',
   Words = 'Words',
   Sentences = 'Sentences',
   Paragraphs = 'Paragraphs',
   WholeText = 'WholeText'
+}
+
+export enum WeightingStrategy {
+  Linear = 'Linear',
+  Quadratic = 'Quadratic',
+  Exponential = 'Exponential',
+  Logarithmic = 'Logarithmic',
+  WeightedMean = 'WeightedMean'
 }
 
 export enum ComparisonScope {
@@ -18,8 +37,3 @@ export enum FuzzyAlgorithm {
   NGram = "NGram",               // N-gram based similarity
 }
 
-// Because "Exact" is just a string in JSON, you need to account for that:
-export type SimilarityMethod = {
-  type: "Exact" | "Semantic" | "Levenshtein" | "Fuzzy";
-  algorithm?: FuzzyAlgorithm;  // Only required when type is "Fuzzy"
-}

@@ -164,7 +164,7 @@ mod tests {
         }
         
         // Test deduplication
-        let guard = manager.lock().await;
+        let mut guard = manager.lock().await;
         let groups = guard.deduplicate_texts().unwrap();
         assert!(!groups.duplicate_groups.is_empty());
         
@@ -187,7 +187,7 @@ mod tests {
         
         // Verify texts were added
         {
-            let guard = manager.lock().await;
+            let mut guard = manager.lock().await;
             let results = guard.deduplicate_texts().unwrap();
             assert_eq!(results.stats.total_items, 2, "Expected 2 texts to be added");
         }
@@ -200,7 +200,7 @@ mod tests {
         
         // Verify texts were cleared
         {
-            let guard = manager.lock().await;
+            let mut guard = manager.lock().await;
             let results = guard.deduplicate_texts().unwrap();
             assert_eq!(results.stats.total_items, 0, "Expected all texts to be cleared");
         }

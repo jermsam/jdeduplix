@@ -1,11 +1,15 @@
 import {onMounted, ref, watch} from 'vue';
 import { invoke } from '@tauri-apps/api/core'
-import {DedupStrategy, DEFAULT_STRATEGY, DuplicateResult} from '../types/dedup.ts';
+import {
+  type DedupStrategyType,
+  type DuplicateResultType,  
+  DEFAULT_STRATEGY, 
+} from '../types/dedup.ts';
 
 
 export function useDeduplication() {
-  const strategy = ref<DedupStrategy>({ ...DEFAULT_STRATEGY })
-  const results = ref<DuplicateResult>({ duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } })
+  const strategy = ref<DedupStrategyType>(DEFAULT_STRATEGY)
+  const results = ref<DuplicateResultType>({ duplicate_groups: [], stats: { duplicate_groups: 0, total_items: 0, unique_items: 0 } })
   const texts = ref<string[]>([])
   const isUpdatingStrategy = ref(false)
 
@@ -14,7 +18,7 @@ export function useDeduplication() {
     if (newStrategy) {
       try {
         isUpdatingStrategy.value = true
-        await invoke('update_strategy', {
+        await invoke<{strategy: DedupStrategyType}>('update_strategy', {
           strategy: {
             caseSensitive: newStrategy.case_sensitive,
             ignoreWhitespace: newStrategy.ignore_whitespace,
@@ -33,7 +37,8 @@ export function useDeduplication() {
             languageDetection: newStrategy.language_detection,
             encodingNormalization: newStrategy.encoding_normalization,
             similarityWeighting: newStrategy.similarity_weighting,
-            adaptiveThresholding: newStrategy.adaptive_thresholding
+            adaptiveThresholding: newStrategy.adaptive_thresholding,
+            similarityAggregation: newStrategy.similarity_aggregation
           }
         })
         // If we're using semantic similarity, wait a bit for processing
@@ -50,7 +55,7 @@ export function useDeduplication() {
 
   const loadSavedStrategy = async () => {
     try {
-      strategy.value = await invoke<DedupStrategy>('get_strategy');
+      strategy.value = await invoke<DedupStrategyType>('get_strategy');
     } catch (error) {
       console.error('Failed to load saved strategy:', error)
     }
@@ -75,7 +80,7 @@ export function useDeduplication() {
       if (strategy.value.similarity_method.type === 'Semantic') {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-      const res = await invoke<DuplicateResult>('deduplicate_texts');
+      const res = await invoke<DuplicateResultType>('deduplicate_texts');
       console.log(res);
       results.value = res;
   

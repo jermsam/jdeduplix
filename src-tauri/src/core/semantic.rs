@@ -108,7 +108,7 @@ impl TextEncoder {
         &self,
         encoding1: &Tensor<DefaultBackend, 2>,
         encoding2: &Tensor<DefaultBackend, 2>,
-        _aggregation: Option<SimilarityAggregation>,
+        aggregation: SimilarityAggregation,
     ) -> f64 {
         // Get a lock on the encoder
         let _encoder = self.encoder.lock().expect("Failed to lock encoder");
@@ -136,7 +136,7 @@ impl TextEncoder {
         // Compute similarity
 
                 // Apply aggregation method if multiple values exist
-                let final_similarity = match _aggregation.unwrap_or(SimilarityAggregation::Mean) {
+                let final_similarity = match aggregation {
                     SimilarityAggregation::First => {
                     let similarity = dot_product.into_scalar() / denominator_scalar;
                     
@@ -219,20 +219,21 @@ impl SemanticAnalyzer {
 
     /// Detects the language of the given text, using cache if available.
     pub fn detect_language(&mut self, text: &str) -> Option<Language> {
-        // Initialize stopwords if not already initialized
-        STOPWORDS.get_or_init(|| {
-            let mut map = HashMap::new();
-            map.insert(Language::Eng, get(StopLanguage::English).into_iter().collect());
-            map.insert(Language::Fra, get(StopLanguage::French).into_iter().collect());
-            map.insert(Language::Spa, get(StopLanguage::Spanish).into_iter().collect());
-            map.insert(Language::Deu, get(StopLanguage::German).into_iter().collect());
-            map.insert(Language::Rus, get(StopLanguage::Russian).into_iter().collect());
-            map.insert(Language::Por, get(StopLanguage::Portuguese).into_iter().collect());
-            map.insert(Language::Ita, get(StopLanguage::Italian).into_iter().collect());
-            map
-        });
+        // Check if we have the language in cache
+        if let Some(cached_lang) = self.language_cache.get(text) {
+            return Some(*cached_lang);
+        }
 
-        detect(text).map(|info| info.lang())
+        // If not in cache, detect the language
+        let detected_lang = whatlang::detect(text)
+            .and_then(|info| Language::try_from(info.lang()).ok());
+
+        // Cache the result if language was detected
+        if let Some(lang) = detected_lang {
+            self.language_cache.insert(text.to_string(), lang);
+        }
+
+        detected_lang
     }
 
     /// Preprocesses text based on the provided settings.

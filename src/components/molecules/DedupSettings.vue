@@ -26,6 +26,7 @@
   });
 
   watch(() => props.strategy, (newVal, oldVal) => {
+    console.log('strategy', newVal);
     if (newVal && newVal !== oldVal) {
       const matchingPreset = presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(newVal));
       if (matchingPreset) {

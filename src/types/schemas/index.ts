@@ -1,10 +1,13 @@
 import { z } from 'zod';
-import {ComparisonScope,  SplitStrategy, FuzzyAlgorithm} from '../enums';
+import {ComparisonScope, SplitStrategy, FuzzyAlgorithm, SimilarityAggregation, WeightingStrategy} from '../enums';
 
 // 1) Zod schemas for enums
+export const SimilarityAggregationSchema = z.nativeEnum(SimilarityAggregation);
 export const SplitStrategySchema = z.nativeEnum(SplitStrategy);
+export const WeightingStrategySchema = z.nativeEnum(WeightingStrategy);
 export const ComparisonScopeSchema = z.nativeEnum(ComparisonScope);
 export const FuzzyAlgorithmSchema = z.nativeEnum(FuzzyAlgorithm);
+
 
 export const SimilarityMethodSchema = z.object({
   type: z.enum(["Exact", "Semantic", "Levenshtein", "Fuzzy"]),
@@ -60,21 +63,25 @@ export const SimilarityWeightsSchema = z.object({
    * - Detecting AI-generated variations
    * - Comparing content in different writing styles
    */
-  context: z.number().min(0).max(1)
+  context: z.number().min(0).max(1),
+  strategy: WeightingStrategySchema
 }).refine(
-  (weights) => {
-    const sum = weights.frequency + weights.position + weights.context;
-    return Math.abs(sum - 1.0) < 0.001; // Allow small floating-point differences
+  ({ frequency, position, context }) => {
+    const sum = frequency + position + context;
+    return Math.abs(sum - 1.0) < 0.001; // Allow for small floating point errors
   },
   {
     message: "Weights must sum to 1.0"
   }
 );
 
+
+
 //
 // 2) Zod schema for DedupStrategy
 //
 export const DedupStrategySchema = z.object({
+  similarity_aggregation: SimilarityAggregationSchema,
   case_sensitive: z.boolean(),
   ignore_whitespace: z.boolean(),
   ignore_punctuation: z.boolean(),

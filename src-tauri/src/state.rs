@@ -111,7 +111,7 @@ pub struct SimilarityWeighting {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DedupStrategySettings {
-    pub similarity_aggregation: Option<SimilarityAggregation>,
+    pub similarity_aggregation: SimilarityAggregation,
     pub case_sensitive: Option<bool>,
     pub ignore_whitespace: Option<bool>,
     pub ignore_punctuation: Option<bool>,
@@ -153,7 +153,7 @@ impl Default for DedupStrategySettings {
             similarity_weighting: None,
             adaptive_thresholding: Some(false),
             config: Some(DynamicConfig::default()),
-            similarity_aggregation: Some(SimilarityAggregation::First),
+            similarity_aggregation: SimilarityAggregation::First,
         }
     }
 }
