@@ -26,7 +26,6 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
     info!("📥 Incoming strategy data: {:#?}", strategy);
 
     let dedup_strategy = DedupStrategySettings {
-        similarity_aggregation: strategy.similarity_aggregation,
         case_sensitive: strategy.case_sensitive,
         ignore_whitespace: strategy.ignore_whitespace,
         ignore_punctuation: strategy.ignore_punctuation,
@@ -35,6 +34,7 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
         comparison_scope: strategy.comparison_scope,
         min_length: strategy.min_length,
         similarity_threshold: strategy.similarity_threshold,
+        max_duplicate_count: strategy.max_duplicate_count,
         similarity_method: strategy.similarity_method,
         use_parallel: strategy.use_parallel,
         ignore_stopwords: strategy.ignore_stopwords,
@@ -42,7 +42,6 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
         ngram_size: strategy.ngram_size,
         language_detection: Some(false),
         encoding_normalization: Some(true),
-        similarity_weighting: None,
         adaptive_thresholding: Some(false),
         config: Some(DynamicConfig::default()),
     };

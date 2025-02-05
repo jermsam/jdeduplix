@@ -4,7 +4,7 @@
   import Input from '../atoms/Input.vue';
   import Switch from '../atoms/Switch.vue';
   import Select from '../atoms/Select.vue';
-  import {DedupStrategy, DedupPreset, DEDUP_PRESETS} from '../../types/dedup.ts';
+  import {DEDUP_PRESETS} from '../../types/dedup.ts';
   import {SplitStrategy, ComparisonScope, FuzzyAlgorithm} from '../../types/enums';
   import {ref, watch, computed} from 'vue';
 

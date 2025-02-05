@@ -312,10 +312,9 @@ impl SemanticAnalyzer {
             .calculate_similarity(&doc1.vector, &doc2.vector);
 
         // Apply threshold if specified
-        if let Some(threshold) = settings.threshold {
-            if similarity < threshold {
-                return 0.0;
-            }
+         let threshold = settings.similarity_threshold;
+        if similarity < threshold {
+            return 0.0;
         }
 
         similarity * language_penalty

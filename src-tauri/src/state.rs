@@ -136,7 +136,8 @@ pub struct DedupStrategySettings {
     pub language_detection: Option<bool>,
     pub ngram_size: Option<usize>,
     pub min_length: Option<usize>,
-    pub threshold: Option<f64>,
+    pub similarity_threshold: f64,
+    pub max_duplicate_count: Option<usize>, // Maximum number of duplicates to process
     pub split_strategy: SplitStrategy,
     pub comparison_scope: ComparisonScope,
     pub similarity_method: SimilarityMethod,
@@ -158,7 +159,8 @@ impl Default for DedupStrategySettings {
             language_detection: Some(true),
             ngram_size: None,
             min_length: None,
-            threshold: Some(0.5),
+            similarity_threshold: 0.5,
+            max_duplicate_count: Some(1000), // Default to 1000 duplicates
             split_strategy: SplitStrategy::Words,
             comparison_scope: ComparisonScope::Global,
             similarity_method: SimilarityMethod::Exact,
@@ -253,8 +255,13 @@ impl DedupManager {
         }
 
         // Use TextClassifier to find duplicates
-        let duplicate_indices = self.classifier.find_duplicates();
+        let mut duplicate_indices = self.classifier.find_duplicates();
         
+        // Apply max_duplicate_count limit if specified
+        if let Some(max_count) = self.strategy.max_duplicate_count {
+            duplicate_indices.truncate(max_count);
+        }
+
         // Convert indices to DuplicateGroups
         let duplicate_groups: Vec<DuplicateGroup> = duplicate_indices
             .into_iter()
