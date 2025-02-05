@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::f64::consts::E;
 
 use tokenizers::models::wordpiece::WordPiece;
 use tokenizers::normalizers::BertNormalizer;
@@ -13,12 +12,12 @@ use burn::backend::ndarray::{NdArray, NdArrayDevice};
 use burn::nn::transformer::{TransformerEncoder, TransformerEncoderConfig};
 use burn::tensor::Tensor;
 
-use whatlang::{detect, Lang as Language};
+use whatlang::Lang as Language;
 use stop_words::{get, LANGUAGE as StopLanguage};
 use rust_stemmers::{Algorithm, Stemmer};
 use unicode_normalization::UnicodeNormalization;
 
-use crate::state::{DedupStrategySettings, WeightingStrategy};
+use crate::state::DedupStrategySettings;
 
 // Type aliases for convenience.
 type DefaultBackend = NdArray;
@@ -38,6 +37,32 @@ static TOKENIZER: OnceLock<Arc<Tokenizer>> = OnceLock::new();
 
 /// Stopwords mapped by language.
 static STOPWORDS: OnceLock<HashMap<Language, HashSet<String>>> = OnceLock::new();
+
+fn init_stopwords() -> HashMap<Language, HashSet<String>> {
+    let mut map = HashMap::new();
+    
+    // Map whatlang::Language to stop_words::LANGUAGE
+    let lang_mappings = [
+        (Language::Eng, StopLanguage::English),
+        (Language::Fra, StopLanguage::French),
+        (Language::Spa, StopLanguage::Spanish),
+        (Language::Por, StopLanguage::Portuguese),
+        (Language::Ita, StopLanguage::Italian),
+        (Language::Deu, StopLanguage::German),
+        (Language::Rus, StopLanguage::Russian),
+    ];
+
+    for (lang, stop_lang) in lang_mappings {
+        let stopwords = get(stop_lang);
+        map.insert(lang, stopwords.into_iter().collect());
+    }
+
+    map
+}
+
+// ---------------------------------------------------------------------
+// Text Encoder
+// ---------------------------------------------------------------------
 
 /// A text encoder using a transformer model.
 #[derive(Debug)]
@@ -62,10 +87,14 @@ impl TextEncoder {
         let encoder = Arc::new(Mutex::new(config.init(&device)));
 
         let tokenizer = TOKENIZER.get_or_init(|| {
+            let mut vocab = HashMap::new();
+            vocab.insert("[UNK]".to_string(), 0);
+            
             let wordpiece = WordPiece::builder()
                 .unk_token("[UNK]".into())
                 .max_input_chars_per_word(100)
                 .continuing_subword_prefix("##".into())
+                .vocab(vocab)
                 .build()
                 .expect("Failed to build WordPiece model");
 
@@ -98,9 +127,11 @@ impl TextEncoder {
         // Get a lock on the encoder
         let encoder = self.encoder.lock().expect("Failed to lock encoder");
         
-        // Pass the Vec directly.
-        Tensor::<DefaultBackend, 2>::from_data(input_ids.as_slice(), &Default::default())
-            .reshape([1, input_ids.len()])
+        // Create a 2D tensor with shape [1, sequence_length]
+        let sequence_length = input_ids.len();
+        let data: Vec<f32> = input_ids.iter().map(|&id| id as f32).collect();
+        let tensor = Tensor::<DefaultBackend, 1>::from_data(data.as_slice(), &self.device);
+        tensor.reshape([1, sequence_length])
     }
 
     /// Calculates the cosine similarity between two encoded texts.
@@ -213,12 +244,13 @@ impl SemanticAnalyzer {
         if settings.ignore_stopwords.unwrap_or(false) {
             if let Some(lang) = lang {
                 if let Some(stopwords) = STOPWORDS.get() {
-                    processed = processed
-                        .split_whitespace()
-                        .filter(|word| stopwords.get(&lang) // Get the HashSet<String> for the given language
-                        .map_or(false, |set| set.contains(*word)) )
-                        .collect::<Vec<_>>()
-                        .join(" ");
+                    if let Some(lang_stopwords) = stopwords.get(&lang) {
+                        processed = processed
+                            .split_whitespace()
+                            .filter(|word| !lang_stopwords.contains(*word))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                    }
                 }
             }
         }
