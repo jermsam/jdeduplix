@@ -4,6 +4,7 @@ pub mod commands;
 pub mod core;
 pub mod state;
 pub mod config;
+pub mod error;
 pub use state::*;
 
 use tokio::sync::Mutex;

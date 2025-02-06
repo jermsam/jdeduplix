@@ -1,29 +1,30 @@
 use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex;
-use anyhow::Result;
 use tracing::info;
 use crate::config::DynamicConfig;
+use crate::error::{AppError, ErrorCode};
 use crate::state::{DedupManager,DuplicateGroup, DedupStrategySettings,  DedupResults, DedupStats};
 
 /// Clears all texts from the deduplication manager.
 #[tauri::command]
-pub async fn clear(app_handle: AppHandle) -> Result<(), String> {
+pub async fn clear(app_handle: AppHandle) -> Result<(), AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let mut manager = state.lock().await;
-    manager.clear().map_err(|e| e.to_string())
+    manager.clear().map_err(|e| AppError::new(ErrorCode::InternalError, e.to_string()))
 }
 
 #[tauri::command]
-pub async fn add_text(app_handle: AppHandle, text: String) -> Result<usize, String> {
+pub async fn add_text(app_handle: AppHandle, text: String) -> Result<usize, AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let mut manager = state.lock().await;
     Ok(manager.add_text(text))
 }
 
 #[tauri::command]
-pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySettings) -> Result<(), String> {
+pub async fn update_strategy(app_handle: AppHandle, strategy: String) -> Result<String, AppError> {
     info!("🔄 Received strategy update request");
-    info!("📥 Incoming strategy data: {:#?}", strategy);
+    let strategy: DedupStrategySettings = serde_json::from_str(&strategy).map_err(|e| AppError::new(ErrorCode::DeserializationError, e.to_string()))?;
+    info!("📥 Incoming strategy data: {:#?}",strategy);
 
     let dedup_strategy = DedupStrategySettings {
         case_sensitive: strategy.case_sensitive,
@@ -48,23 +49,36 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: DedupStrategySetti
 
     let state = app_handle.state::<Mutex<DedupManager>>();
     let mut manager = state.lock().await;
-    manager.update_strategy(&serde_json::to_string(&dedup_strategy).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+    
+    // Update the strategy and return the updated strategy as JSON
+    let updated_strategy_str = serde_json::to_string(&dedup_strategy)
+        .map_err(|e| AppError::new(
+            ErrorCode::SerializationError,
+            format!("Failed to serialize strategy: {}", e)
+        ))?;
+    
+    manager.update_strategy(&updated_strategy_str)
+        .map_err(|e| AppError::new(
+            ErrorCode::StrategyUpdateError,
+            format!("Failed to update strategy: {}", e)
+        ))?;
+    
+    Ok(updated_strategy_str)
 }
 
-
 #[tauri::command]
-pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings, String> {
+pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings, AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let manager = state.lock().await;
     let strategy_str = manager.get_strategy();
-    serde_json::from_str(&strategy_str).map_err(|e| e.to_string())
+    serde_json::from_str(&strategy_str).map_err(|e| AppError::new(ErrorCode::DeserializationError, e.to_string()))
 }
 
 #[tauri::command]
-pub async fn deduplicate_texts(app_handle: AppHandle) -> Result<DedupResults, String> {
+pub async fn deduplicate_texts(app_handle: AppHandle) -> Result<DedupResults, AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let mut manager = state.lock().await;
-    let raw_results = manager.deduplicate_texts().map_err(|e| e.to_string())?;
+    let raw_results = manager.deduplicate_texts().map_err(|e| AppError::new(ErrorCode::InternalError, e.to_string()))?;
     
     // Convert the raw results into our frontend-friendly format
     let mut duplicate_groups = Vec::new();
@@ -93,10 +107,10 @@ pub async fn deduplicate_texts(app_handle: AppHandle) -> Result<DedupResults, St
 }
 
 #[tauri::command]
-pub async fn get_text(app_handle: AppHandle, id: usize) -> Result<String, String> {
+pub async fn get_text(app_handle: AppHandle, id: usize) -> Result<String, AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let manager = state.lock().await;
-    manager.get_text(id).ok_or_else(|| "Text not found".to_string())
+    manager.get_text(id).ok_or_else(|| AppError::new(ErrorCode::InternalError, "Text not found".to_string()))
 }
 
 #[cfg(test)]

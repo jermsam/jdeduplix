@@ -138,7 +138,7 @@
           <Select
             label="Similarity Method"
             :model-value="currentSettings.similarity_method.type"
-            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, type: $event })"
+            @update:model-value="updateStrategy('similarity_method', { type: $event, algorithm: currentSettings.similarity_method.algorithm })"
             :options="similarityMethodOptions"
           />
 
@@ -147,7 +147,7 @@
             v-if="currentSettings.similarity_method.type === 'Fuzzy'"
             label="Fuzzy Algorithm"
             :model-value="currentSettings.similarity_method.algorithm || FuzzyAlgorithm.DamerauLevenshtein"
-            @update:model-value="updateStrategy('similarity_method', {...currentSettings.similarity_method,  algorithm: $event })"
+            @update:model-value="updateStrategy('similarity_method', { type: currentSettings.similarity_method.type, algorithm: $event })"
             :options="fuzzyAlgorithmOptions"
           />
 

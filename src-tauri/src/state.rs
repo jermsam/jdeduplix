@@ -127,7 +127,7 @@ pub enum WeightingStrategy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DedupStrategySettings {
-    pub case_sensitive: Option<bool>,
+    pub case_sensitive: Option<bool>,//
     pub ignore_whitespace: Option<bool>,
     pub ignore_punctuation: Option<bool>,
     pub normalize_unicode: Option<bool>,
@@ -143,7 +143,7 @@ pub struct DedupStrategySettings {
     pub similarity_method: SimilarityMethod,
     pub use_parallel: Option<bool>,
     pub encoding_normalization: Option<bool>,
-    pub adaptive_thresholding: Option<bool>,
+    pub adaptive_thresholding: Option<bool>,//
     pub config: Option<DynamicConfig>,
 }
 

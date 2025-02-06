@@ -13,53 +13,63 @@ export function useDeduplication() {
   const texts = ref<string[]>([])
   const isUpdatingStrategy = ref(false)
 
+  // Function to update strategy without triggering the watcher
+  const updateStrategyFromServer = (updatedStrategy: any) => {
+    const parsed = {
+      ...updatedStrategy,
+      similarity_method: updatedStrategy.similarity_method.Fuzzy ? {
+        type: 'Fuzzy',
+        algorithm: updatedStrategy.similarity_method.Fuzzy
+      } : {
+        type: updatedStrategy.similarity_method
+      }
+    };
+    strategy.value = parsed;
+  }
+
   // Watch for strategy changes and save to backend
-  watch(strategy, async (newStrategy) => {
-    if (newStrategy) {
+  watch(strategy, async (newStrategy, oldStrategy) => {
+    if (newStrategy && JSON.stringify(newStrategy) !== JSON.stringify(oldStrategy)) {
       try {
-        isUpdatingStrategy.value = true
-        await invoke<{strategy: DedupStrategyType}>('update_strategy', {
-          strategy: {
-            caseSensitive: newStrategy.case_sensitive,
-            ignoreWhitespace: newStrategy.ignore_whitespace,
-            ignorePunctuation: newStrategy.ignore_punctuation,
-            normalizeUnicode: newStrategy.normalize_unicode,
-            splitStrategy: newStrategy.split_strategy,
-            comparisonScope: newStrategy.comparison_scope,
-            minLength: newStrategy.min_length,
-            similarityThreshold: newStrategy.similarity_threshold,
-            similarityMethod: newStrategy.similarity_method,
-            useParallel: newStrategy.use_parallel,
-            ignoreStopwords: newStrategy.ignore_stopwords,
-            stemming: newStrategy.stemming,
-            ngramSize: newStrategy.ngram_size,
-            maxDuplicateCount: newStrategy.max_duplicate_count,
-            languageDetection: newStrategy.language_detection,
-            encodingNormalization: newStrategy.encoding_normalization,
-            // similarityWeighting: newStrategy.similarity_weighting,
-            adaptiveThresholding: newStrategy.adaptive_thresholding,
-            // similarityAggregation: newStrategy.similarity_aggregation
-          }
-        })
+        isUpdatingStrategy.value = true;
+        console.info("🔄 Sent strategy update request");
+        console.info("📥 Outgoing strategy data:", newStrategy);
+        const result = await invoke<string>('update_strategy', { 
+          strategy: JSON.stringify({
+            ...newStrategy,
+            similarity_method: newStrategy.similarity_method.type === 'Fuzzy' 
+              ? { Fuzzy: newStrategy.similarity_method.algorithm }
+              : newStrategy.similarity_method.type
+          })
+        });
+        const updatedStrategy = JSON.parse(result);
+        console.info("📤 Updated strategy data:", updatedStrategy);
+        
         // If we're using semantic similarity, wait a bit for processing
         if (newStrategy.similarity_method.type === 'Semantic') {
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       } catch (error) {
-        console.error('Failed to save strategy:', error)
+        console.error('Failed to save strategy:', error);
       } finally {
-        isUpdatingStrategy.value = false
+        isUpdatingStrategy.value = false;
       }
     }
-  }, { deep: true })
+  }, { deep: true,immediate:true })
 
+  // Update initial strategy
   const loadSavedStrategy = async () => {
     try {
-      strategy.value = await invoke<DedupStrategyType>('get_strategy');
+      isUpdatingStrategy.value = true;
+      const result = await invoke<string>('get_strategy');
+      const savedStrategy = JSON.parse(result);
+      updateStrategyFromServer(savedStrategy);
     } catch (error) {
-      console.error('Failed to load saved strategy:', error)
+      console.error('Failed to load strategy:', error);
+    } finally {
+      isUpdatingStrategy.value = false;
     }
-  }
+  };
 
   const findDuplicates = async (text: string) => {
     try {
