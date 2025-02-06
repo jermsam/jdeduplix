@@ -1,5 +1,7 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
+  import Slider from '../atoms/Slider.vue';
+  import Input from '../atoms/Input.vue';
   import Switch from '../atoms/Switch.vue';
   import Select from '../atoms/Select.vue';
   import {DEDUP_PRESETS} from '../../types/dedup.ts';
@@ -26,7 +28,7 @@
 
   watch(() => props.strategy, (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-  
+
       const matchingPreset = presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(newVal));
       if (matchingPreset) {
         selectedPreset.value = matchingPreset;
@@ -136,7 +138,7 @@
           <Select
             label="Similarity Method"
             :model-value="currentSettings.similarity_method.type"
-            @update:model-value="updateStrategy('similarity_method', { type: $event })"
+            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, type: $event })"
             :options="similarityMethodOptions"
           />
 
@@ -145,7 +147,7 @@
             v-if="currentSettings.similarity_method.type === 'Fuzzy'"
             label="Fuzzy Algorithm"
             :model-value="currentSettings.similarity_method.algorithm || FuzzyAlgorithm.DamerauLevenshtein"
-            @update:model-value="updateStrategy('similarity_method', {  algorithm: $event })"
+            @update:model-value="updateStrategy('similarity_method', {...currentSettings.similarity_method,  algorithm: $event })"
             :options="fuzzyAlgorithmOptions"
           />
 
