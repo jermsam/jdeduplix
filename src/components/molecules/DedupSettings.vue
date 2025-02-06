@@ -1,33 +1,32 @@
 <!-- DedupSettings.vue -->
 <script setup lang="ts">
-  import Slider from '../atoms/Slider.vue';
-  import Input from '../atoms/Input.vue';
   import Switch from '../atoms/Switch.vue';
   import Select from '../atoms/Select.vue';
   import {DEDUP_PRESETS} from '../../types/dedup.ts';
   import {SplitStrategy, ComparisonScope, FuzzyAlgorithm} from '../../types/enums';
+  import {type DedupStrategyType, type DedupPresetType} from '../../types/dedup.ts';
   import {ref, watch, computed} from 'vue';
 
   const props = defineProps<{
-    strategy: DedupStrategy
+    strategy: DedupStrategyType
     isDark?: boolean
   }>();
 
   const emit = defineEmits<{
-    (e: 'update:strategy', value: DedupStrategy): void
+    (e: 'update:strategy', value: DedupStrategyType): void
   }>();
 
   const presets = DEDUP_PRESETS;
-  const selectedPreset = ref<DedupPreset>();
+  const selectedPreset = ref<DedupPresetType>();
   const showAdvancedSettings = ref(false);
 
   const currentSettings = computed(() => {
-    return props.strategy || (selectedPreset.value?.settings || presets[0].settings);
+    return selectedPreset.value?.settings  || ( props.strategy || presets[0].settings);
   });
 
   watch(() => props.strategy, (newVal, oldVal) => {
-    console.log('strategy', newVal);
     if (newVal && newVal !== oldVal) {
+  
       const matchingPreset = presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(newVal));
       if (matchingPreset) {
         selectedPreset.value = matchingPreset;
@@ -35,7 +34,7 @@
     }
   }, {immediate: true, deep: true});
 
-  function updateStrategy(key: keyof DedupStrategy, value: any) {
+  function updateStrategy(key: keyof DedupStrategyType, value: any) {
     emit('update:strategy', {
       ...currentSettings.value,
       [key]: value,
@@ -137,7 +136,7 @@
           <Select
             label="Similarity Method"
             :model-value="currentSettings.similarity_method.type"
-            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, type: $event })"
+            @update:model-value="updateStrategy('similarity_method', { type: $event })"
             :options="similarityMethodOptions"
           />
 
@@ -146,7 +145,7 @@
             v-if="currentSettings.similarity_method.type === 'Fuzzy'"
             label="Fuzzy Algorithm"
             :model-value="currentSettings.similarity_method.algorithm || FuzzyAlgorithm.DamerauLevenshtein"
-            @update:model-value="updateStrategy('similarity_method', { ...currentSettings.similarity_method, algorithm: $event })"
+            @update:model-value="updateStrategy('similarity_method', {  algorithm: $event })"
             :options="fuzzyAlgorithmOptions"
           />
 

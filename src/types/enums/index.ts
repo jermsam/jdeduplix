@@ -1,13 +1,13 @@
-export enum SimilarityAggregation {
-  /// Use only the first similarity value
-  First = 'First',
-  /// Take the average of all similarity values
-  Mean = 'Mean',
-  /// Take the maximum similarity value
-  Max = 'Max',
-  /// Take the minimum similarity value
-  Min = 'Min',
-}
+// export enum SimilarityAggregation {
+//   /// Use only the first similarity value
+//   First = 'First',
+//   /// Take the average of all similarity values
+//   Mean = 'Mean',
+//   /// Take the maximum similarity value
+//   Max = 'Max',
+//   /// Take the minimum similarity value
+//   Min = 'Min',
+// }
 
 export enum SplitStrategy {
   Characters = 'Characters',
@@ -17,13 +17,13 @@ export enum SplitStrategy {
   WholeText = 'WholeText'
 }
 
-export enum WeightingStrategy {
-  Linear = 'Linear',
-  Quadratic = 'Quadratic',
-  Exponential = 'Exponential',
-  Logarithmic = 'Logarithmic',
-  WeightedMean = 'WeightedMean'
-}
+// export enum WeightingStrategy {
+//   Linear = 'Linear',
+//   Quadratic = 'Quadratic',
+//   Exponential = 'Exponential',
+//   Logarithmic = 'Logarithmic',
+//   WeightedMean = 'WeightedMean'
+// }
 
 export enum ComparisonScope {
   Local = 'Local',

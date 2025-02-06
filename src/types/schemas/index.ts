@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import {ComparisonScope, SplitStrategy, FuzzyAlgorithm, SimilarityAggregation, WeightingStrategy} from '../enums';
+import {ComparisonScope, SplitStrategy, FuzzyAlgorithm, } from '../enums';
 
 // 1) Zod schemas for enums
-export const SimilarityAggregationSchema = z.nativeEnum(SimilarityAggregation);
+// export const SimilarityAggregationSchema = z.nativeEnum(SimilarityAggregation);
 export const SplitStrategySchema = z.nativeEnum(SplitStrategy);
-export const WeightingStrategySchema = z.nativeEnum(WeightingStrategy);
+// export const WeightingStrategySchema = z.nativeEnum(WeightingStrategy);
 export const ComparisonScopeSchema = z.nativeEnum(ComparisonScope);
 export const FuzzyAlgorithmSchema = z.nativeEnum(FuzzyAlgorithm);
 
@@ -34,46 +34,46 @@ export const SimilarityMethodSchema = z.object({
  * // Emphasize semantic meaning with some consideration for word order
  * { frequency: 0.0, position: 0.3, context: 0.7 }
  */
-export const SimilarityWeightsSchema = z.object({
-  /**
-   * Weight for term frequency comparison (0.0 to 1.0)
-   * Higher values emphasize matching based on how often words appear, regardless of their order.
-   * Effective for:
-   * - Finding documents with similar vocabulary
-   * - Detecting keyword stuffing
-   * - Comparing technical documentation
-   */
-  frequency: z.number().min(0).max(1),
+// export const SimilarityWeightsSchema = z.object({
+//   /**
+//    * Weight for term frequency comparison (0.0 to 1.0)
+//    * Higher values emphasize matching based on how often words appear, regardless of their order.
+//    * Effective for:
+//    * - Finding documents with similar vocabulary
+//    * - Detecting keyword stuffing
+//    * - Comparing technical documentation
+//    */
+//   frequency: z.number().min(0).max(1),
 
-  /**
-   * Weight for positional comparison (0.0 to 1.0)
-   * Higher values emphasize matching based on word order and structure.
-   * Effective for:
-   * - Finding near-exact duplicates
-   * - Comparing structured text (code, logs)
-   * - Detecting copied content with minor changes
-   */
-  position: z.number().min(0).max(1),
+//   /**
+//    * Weight for positional comparison (0.0 to 1.0)
+//    * Higher values emphasize matching based on word order and structure.
+//    * Effective for:
+//    * - Finding near-exact duplicates
+//    * - Comparing structured text (code, logs)
+//    * - Detecting copied content with minor changes
+//    */
+//   position: z.number().min(0).max(1),
 
-  /**
-   * Weight for semantic context comparison (0.0 to 1.0)
-   * Higher values emphasize matching based on meaning rather than exact wording.
-   * Effective for:
-   * - Finding paraphrased content
-   * - Detecting AI-generated variations
-   * - Comparing content in different writing styles
-   */
-  context: z.number().min(0).max(1),
-  strategy: WeightingStrategySchema
-}).refine(
-  ({ frequency, position, context }) => {
-    const sum = frequency + position + context;
-    return Math.abs(sum - 1.0) < 0.001; // Allow for small floating point errors
-  },
-  {
-    message: "Weights must sum to 1.0"
-  }
-);
+//   /**
+//    * Weight for semantic context comparison (0.0 to 1.0)
+//    * Higher values emphasize matching based on meaning rather than exact wording.
+//    * Effective for:
+//    * - Finding paraphrased content
+//    * - Detecting AI-generated variations
+//    * - Comparing content in different writing styles
+//    */
+//   context: z.number().min(0).max(1),
+//   strategy: WeightingStrategySchema
+// }).refine(
+//   ({ frequency, position, context }) => {
+//     const sum = frequency + position + context;
+//     return Math.abs(sum - 1.0) < 0.001; // Allow for small floating point errors
+//   },
+//   {
+//     message: "Weights must sum to 1.0"
+//   }
+// );
 
 
 
@@ -81,7 +81,7 @@ export const SimilarityWeightsSchema = z.object({
 // 2) Zod schema for DedupStrategy
 //
 export const DedupStrategySchema = z.object({
-  similarity_aggregation: SimilarityAggregationSchema,
+  // similarity_aggregation: SimilarityAggregationSchema,
   case_sensitive: z.boolean(),
   ignore_whitespace: z.boolean(),
   ignore_punctuation: z.boolean(),
@@ -98,7 +98,7 @@ export const DedupStrategySchema = z.object({
   language_detection: z.boolean(),
   max_duplicate_count: z.number().optional(),
   encoding_normalization: z.boolean(),
-  similarity_weighting: SimilarityWeightsSchema,
+  // similarity_weighting: SimilarityWeightsSchema,
   adaptive_thresholding: z.boolean()
 });
 

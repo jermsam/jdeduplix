@@ -38,11 +38,11 @@
 
 <script setup lang="ts">
   import {CheckCircleIcon} from '@heroicons/vue/24/outline';
-  import {DuplicateGroup} from '../../types/dedup.ts';
+  import {DuplicateGroupType} from '../../types/dedup.ts';
   import {computed} from 'vue';
 
   const props = defineProps<{
-    duplicateGroups: DuplicateGroup[]
+    duplicateGroups: DuplicateGroupType[]
   }>();
 
   const totalDuplicates = computed(() => {

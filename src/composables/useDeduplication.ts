@@ -36,9 +36,9 @@ export function useDeduplication() {
             maxDuplicateCount: newStrategy.max_duplicate_count,
             languageDetection: newStrategy.language_detection,
             encodingNormalization: newStrategy.encoding_normalization,
-            similarityWeighting: newStrategy.similarity_weighting,
+            // similarityWeighting: newStrategy.similarity_weighting,
             adaptiveThresholding: newStrategy.adaptive_thresholding,
-            similarityAggregation: newStrategy.similarity_aggregation
+            // similarityAggregation: newStrategy.similarity_aggregation
           }
         })
         // If we're using semantic similarity, wait a bit for processing
