@@ -19,7 +19,10 @@
   }>();
 
   const presets = DEDUP_PRESETS;
-  const selectedPreset = ref<DedupPresetType>();
+  // Initialize selectedPreset with the first preset or based on props.strategy
+  const selectedPreset = ref<DedupPresetType>(
+    presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(props.strategy)) || presets[0]
+  );
   const showAdvancedSettings = ref(false);
 
   const currentSettings = computed(() => {
@@ -27,8 +30,8 @@
   });
 
   watch(() => props.strategy, (newVal, oldVal) => {
-    if (newVal && newVal !== oldVal) {
-
+    if (newVal && newVal !== oldVal && selectedPreset.value) {
+      selectedPreset.value.settings = newVal;
       const matchingPreset = presets.find((preset) => JSON.stringify(preset.settings) === JSON.stringify(newVal));
       if (matchingPreset) {
         selectedPreset.value = matchingPreset;

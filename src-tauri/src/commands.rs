@@ -41,10 +41,10 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: String) -> Result<
         ignore_stopwords: strategy.ignore_stopwords,
         stemming: strategy.stemming,
         ngram_size: strategy.ngram_size,
-        language_detection: Some(false),
-        encoding_normalization: Some(true),
-        adaptive_thresholding: Some(false),
-        config: Some(DynamicConfig::default()),
+        language_detection: strategy.language_detection,
+        encoding_normalization: strategy.encoding_normalization,
+        adaptive_thresholding: strategy.adaptive_thresholding,
+        config: strategy.config,
     };
 
     let state = app_handle.state::<Mutex<DedupManager>>();
