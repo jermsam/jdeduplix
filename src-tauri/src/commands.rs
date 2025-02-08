@@ -67,11 +67,11 @@ pub async fn update_strategy(app_handle: AppHandle, strategy: String) -> Result<
 }
 
 #[tauri::command]
-pub async fn get_strategy(app_handle: AppHandle) -> Result<DedupStrategySettings, AppError> {
+pub async fn get_strategy(app_handle: AppHandle) -> Result<String, AppError> {
     let state = app_handle.state::<Mutex<DedupManager>>();
     let manager = state.lock().await;
     let strategy_str = manager.get_strategy();
-    serde_json::from_str(&strategy_str).map_err(|e| AppError::new(ErrorCode::DeserializationError, e.to_string()))
+    Ok(strategy_str)
 }
 
 #[tauri::command]
